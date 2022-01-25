@@ -1,4 +1,7 @@
+import datetime
 import os
+import sys
+import time
 from . import utils
 from .data.fetch_data import fetch_yaml
 
@@ -127,70 +130,72 @@ class CMAQModel:
             print('MCIP ran in: ' + hf.strfdelta(elapsed))
 
     def run_icon(self, type='regrid'):
-        #ICON
-        APPL     = 09NE                    #> Application Name
-        ICTYPE   = profile                  #> Initial conditions type [profile|regrid]
-        #> Horizontal grid definition 
-        setenv GRID_NAME 09NE               #> check GRIDDESC file for GRID_NAME options
-        setenv GRIDDESC $CMAQ_DATA/mcip/$APPL/GRIDDESC #> grid description file 
-        setenv IOAPI_ISPH 20                     #> GCTP spheroid, use 20 for WRF-based modeling
+        # #ICON
+        # APPL     = 09NE                    #> Application Name
+        # ICTYPE   = profile                  #> Initial conditions type [profile|regrid]
+        # #> Horizontal grid definition 
+        # setenv GRID_NAME 09NE               #> check GRIDDESC file for GRID_NAME options
+        # setenv GRIDDESC $CMAQ_DATA/mcip/$APPL/GRIDDESC #> grid description file 
+        # setenv IOAPI_ISPH 20                     #> GCTP spheroid, use 20 for WRF-based modeling
 
-        #> I/O Controls
-        setenv IOAPI_LOG_WRITE F     #> turn on excess WRITE3 logging [ options: T | F ]
-        setenv IOAPI_OFFSET_64 YES   #> support large timestep records (>2GB/timestep record) [ options: YES | NO ]
+        # #> I/O Controls
+        # setenv IOAPI_LOG_WRITE F     #> turn on excess WRITE3 logging [ options: T | F ]
+        # setenv IOAPI_OFFSET_64 YES   #> support large timestep records (>2GB/timestep record) [ options: YES | NO ]
 
-        OUTDIR   = $CMAQ_HOME/data/icon       #> output file directory
+        # OUTDIR   = $CMAQ_HOME/data/icon       #> output file directory
 
-        set DATE = "2018-01-01"
-        set YYYYJJJ  = `date -ud "${DATE}" +%Y%j`   #> Convert YYYY-MM-DD to YYYYJJJ
-        set YYMMDD   = `date -ud "${DATE}" +%y%m%d` #> Convert YYYY-MM-DD to YYMMDD
-        set YYYYMMDD = `date -ud "${DATE}" +%Y%m%d` #> Convert YYYY-MM-DD to YYYYMMDD
-        #   setenv SDATE           ${YYYYJJJ}
-        #   setenv STIME           000000
+        # set DATE = "2018-01-01"
+        # set YYYYJJJ  = `date -ud "${DATE}" +%Y%j`   #> Convert YYYY-MM-DD to YYYYJJJ
+        # set YYMMDD   = `date -ud "${DATE}" +%y%m%d` #> Convert YYYY-MM-DD to YYMMDD
+        # set YYYYMMDD = `date -ud "${DATE}" +%Y%m%d` #> Convert YYYY-MM-DD to YYYYMMDD
+        # #   setenv SDATE           ${YYYYJJJ}
+        # #   setenv STIME           000000
 
-        if ( $ICON_TYPE == regrid ) then
-            setenv CTM_CONC_1 /work/MOD3EVAL/sjr/CCTM_CONC_v53_intel18.0_2016_CONUS_test_${YYYYMMDD}.nc
-            setenv MET_CRO_3D_CRS /work/MOD3DATA/2016_12US1/met/mcip_v43_wrf_v381_ltng/METCRO3D.12US1.35L.${YYMMDD}
-            setenv MET_CRO_3D_FIN /work/MOD3DATA/SE53BENCH/met/mcip/METCRO3D_${YYMMDD}.nc
-            setenv INIT_CONC_1    "$OUTDIR/ICON_${VRSN}_${APPL}_${ICON_TYPE}_${YYYYMMDD} -v"
-        endif
+        # if ( $ICON_TYPE == regrid ) then
+        #     setenv CTM_CONC_1 /work/MOD3EVAL/sjr/CCTM_CONC_v53_intel18.0_2016_CONUS_test_${YYYYMMDD}.nc
+        #     setenv MET_CRO_3D_CRS /work/MOD3DATA/2016_12US1/met/mcip_v43_wrf_v381_ltng/METCRO3D.12US1.35L.${YYMMDD}
+        #     setenv MET_CRO_3D_FIN /work/MOD3DATA/SE53BENCH/met/mcip/METCRO3D_${YYMMDD}.nc
+        #     setenv INIT_CONC_1    "$OUTDIR/ICON_${VRSN}_${APPL}_${ICON_TYPE}_${YYYYMMDD} -v"
+        # endif
 
-        if ( $ICON_TYPE == profile ) then
-            setenv IC_PROFILE $BLD/avprofile_cb6r3m_ae7_kmtbr_hemi2016_v53beta2_m3dry_col051_row068.csv
-            setenv MET_CRO_3D_FIN $CMAQ_DATA/mcip/$APPL/METCRO3D_${YYMMDD}.nc
-            setenv INIT_CONC_1    "$OUTDIR/ICON_${VRSN}_${APPL}_${ICON_TYPE}_${YYYYMMDD} -v"
-        endif
+        # if ( $ICON_TYPE == profile ) then
+        #     setenv IC_PROFILE $BLD/avprofile_cb6r3m_ae7_kmtbr_hemi2016_v53beta2_m3dry_col051_row068.csv
+        #     setenv MET_CRO_3D_FIN $CMAQ_DATA/mcip/$APPL/METCRO3D_${YYMMDD}.nc
+        #     setenv INIT_CONC_1    "$OUTDIR/ICON_${VRSN}_${APPL}_${ICON_TYPE}_${YYYYMMDD} -v"
+        # endif
+        pass
 
     def run_bcon(self, type='regrid'):
-        #BCON
-        set APPL     = 09NE                     #> Application Name
-        set BCTYPE   = profile                  #> Boundary condition type [profile|regrid]
+        # #BCON
+        # set APPL     = 09NE                     #> Application Name
+        # set BCTYPE   = profile                  #> Boundary condition type [profile|regrid]
 
-        #> Horizontal grid definition 
-        setenv GRID_NAME 09NE                   #> check GRIDDESC file for GRID_NAME options
-        setenv GRIDDESC $CMAQ_DATA/mcip/$APPL/GRIDDESC #> grid description file 
-        setenv IOAPI_ISPH 20                     #> GCTP spheroid, use 20 for WRF-based modeling
+        # #> Horizontal grid definition 
+        # setenv GRID_NAME 09NE                   #> check GRIDDESC file for GRID_NAME options
+        # setenv GRIDDESC $CMAQ_DATA/mcip/$APPL/GRIDDESC #> grid description file 
+        # setenv IOAPI_ISPH 20                     #> GCTP spheroid, use 20 for WRF-based modeling
 
-        #> I/O Controls
-        setenv IOAPI_LOG_WRITE F     #> turn on excess WRITE3 logging [ options: T | F ]
-        setenv IOAPI_OFFSET_64 YES   #> support large timestep records (>2GB/timestep record) [ options: YES | NO ]
+        # #> I/O Controls
+        # setenv IOAPI_LOG_WRITE F     #> turn on excess WRITE3 logging [ options: T | F ]
+        # setenv IOAPI_OFFSET_64 YES   #> support large timestep records (>2GB/timestep record) [ options: YES | NO ]
 
-        set OUTDIR   = $CMAQ_HOME/data/bcon       #> output file directory
+        # set OUTDIR   = $CMAQ_HOME/data/bcon       #> output file directory
 
-        set DATE = "2018-01-01"
+        # set DATE = "2018-01-01"
 
-        if ( $BCON_TYPE == regrid ) then
-            setenv CTM_CONC_1 /work/MOD3EVAL/sjr/CCTM_CONC_v53_intel18.0_2016_CONUS_test_${YYYYMMDD}.nc
-            setenv MET_CRO_3D_CRS /work/MOD3DATA/2016_12US1/met/mcip_v43_wrf_v381_ltng/METCRO3D.12US1.35L.${YYMMDD}
-            setenv MET_BDY_3D_FIN /work/MOD3DATA/SE53BENCH/met/mcip/METBDY3D_${YYMMDD}.nc
-            setenv BNDY_CONC_1    "$OUTDIR/BCON_${VRSN}_${APPL}_${BCON_TYPE}_${YYYYMMDD} -v"
-        endif
+        # if ( $BCON_TYPE == regrid ) then
+        #     setenv CTM_CONC_1 /work/MOD3EVAL/sjr/CCTM_CONC_v53_intel18.0_2016_CONUS_test_${YYYYMMDD}.nc
+        #     setenv MET_CRO_3D_CRS /work/MOD3DATA/2016_12US1/met/mcip_v43_wrf_v381_ltng/METCRO3D.12US1.35L.${YYMMDD}
+        #     setenv MET_BDY_3D_FIN /work/MOD3DATA/SE53BENCH/met/mcip/METBDY3D_${YYMMDD}.nc
+        #     setenv BNDY_CONC_1    "$OUTDIR/BCON_${VRSN}_${APPL}_${BCON_TYPE}_${YYYYMMDD} -v"
+        # endif
 
-        if ( $BCON_TYPE == profile ) then
-            setenv BC_PROFILE $BLD/avprofile_cb6r3m_ae7_kmtbr_hemi2016_v53beta2_m3dry_col051_row068.csv
-            setenv MET_BDY_3D_FIN $CMAQ_DATA/mcip/$APPL/METBDY3D_${YYMMDD}.nc
-            setenv BNDY_CONC_1    "$OUTDIR/BCON_${VRSN}_${APPL}_${BCON_TYPE}_${YYYYMMDD} -v"
-        endif
+        # if ( $BCON_TYPE == profile ) then
+        #     setenv BC_PROFILE $BLD/avprofile_cb6r3m_ae7_kmtbr_hemi2016_v53beta2_m3dry_col051_row068.csv
+        #     setenv MET_BDY_3D_FIN $CMAQ_DATA/mcip/$APPL/METBDY3D_${YYMMDD}.nc
+        #     setenv BNDY_CONC_1    "$OUTDIR/BCON_${VRSN}_${APPL}_${BCON_TYPE}_${YYYYMMDD} -v"
+        # endif
+        pass
 
     def run_cctm(self, ):
         pass
@@ -206,22 +211,22 @@ class CMAQModel:
 
         """
         if program == 'mcip':
-            msg = utils.read_last_line(f'{self.MCIP_SCRIPTS}run_mcip_{self.appl}.log')
+            msg = utils.read_last(f'{self.MCIP_SCRIPTS}run_mcip_{self.appl}.log', n_lines=1)
             complete = 'NORMAL TERMINATION' in msg
             # Not sure what the correct failure message should be!
             failed = False
         elif program == 'icon':
-            msg = utils.read_last_line(f'{self.ICON_SCRIPTS}run_icon_{self.appl}.log')
+            msg = utils.read_last(f'{self.ICON_SCRIPTS}run_icon_{self.appl}.log', n_lines=5)
             complete = '>>---->  Program  ICON completed successfully  <----<<' in msg
             # Not sure what the correct failure message should be!
             failed = False
         elif program == 'bcon':
-            msg = utils.read_last_line(f'{self.BCON_SCRIPTS}run_bcon_{self.appl}.log')
+            msg = utils.read_last(f'{self.BCON_SCRIPTS}run_bcon_{self.appl}.log', n_lines=5)
             complete = '>>---->  Program  BCON completed successfully  <----<<' in msg
             # Not sure what the correct failure message should be!
             # failed = '-------------------------------------------' in msg
         elif program == 'cctm':
-            msg = utils.read_last_line(f'{self.MCIP_SCRIPTS}run_mcip_{self.appl}.log')
+            msg = utils.read_last(f'{self.MCIP_SCRIPTS}run_mcip_{self.appl}.log', n_lines=40)
             complete = '|>---   PROGRAM COMPLETED SUCCESSFULLY   ---<|' in msg
             # Not sure what the correct failure message should be!
             # failed = '-------------------------------------------' in msg

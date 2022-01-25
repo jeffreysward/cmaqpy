@@ -55,10 +55,11 @@ def read_last(file_name, n_lines=1):
         with open(file_name, mode='r') as infile:
             lines = infile.readlines()
     except IOError:
-        last_line = 'IOEror in read_last_line: this file does not exist.'
-        return last_line
+        last_lines = 'IOEror in read_last_line: this file does not exist.'
+        return last_lines
     try:
-        last_line = lines[-n_lines:]
+        last_lines = lines[-n_lines:]
+        last_lines = '\n'.join(last_lines)
     except IndexError:
-        last_line = 'IndexError in read_last_line: no last line appears to exist in this file.'
-    return last_line
+        last_lines = 'IndexError in read_last_line: no last line appears to exist in this file.'
+    return last_lines
