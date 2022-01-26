@@ -15,36 +15,11 @@
 
 echo 'Start Model Run At ' `date`
 
-#> Toggle Diagnostic Mode which will print verbose information to 
-#> standard output
- setenv CTM_DIAG_LVL 0
- setenv compiler gcc
- setenv compilerVrsn 9.3.1
+%RUNTIME%
 
-#> Choose compiler and set up CMAQ environment with correct 
-#> libraries using config.cmaq. Options: intel | gcc | pgi
- if ( ! $?compiler ) then
-   setenv compiler intel
- endif
- if ( ! $?compilerVrsn ) then
-   setenv compilerVrsn Empty
- endif
-
-#> Source the config.cmaq file to set the build environment
- cd ../..
- source ./config_cmaq.csh $compiler $compilerVrsn
- cd CCTM/scripts
-
-#> Set General Parameters for Configuring the Simulation
- set VRSN      = v533              #> Code Version - note this must be updated if using ISAM or DDM
- set PROC      = mpi               #> serial or mpi
- set MECH      = cb6r3_ae7_aq      #> Mechanism ID
- set APPL      = Bench_2016_12SE1  #> Application Name (e.g. Gridname)
-                                                       
-#> Define RUNID as any combination of parameters above or others. By default,
-#> this information will be collected into this one string, $RUNID, for easy
-#> referencing in output binaries and log files as well as in other scripts.
- setenv RUNID  ${VRSN}_${compilerString}_${APPL}
+ setenv LOGDIR  ${OUTDIR}/LOGS     #> Log Directory Location
+ setenv NMLpath ${BLD}             #> Location of Namelists. Common places are: 
+                                   #>   ${WORKDIR} | ${CCTM_SRC}/MECHS/${MECH} | ${BLD}
 
 #> Set the build directory (this is where the CMAQ executable
 #> is located by default).
@@ -53,14 +28,6 @@ echo 'Start Model Run At ' `date`
 
 #> Output Each line of Runscript to Log File
  if ( $CTM_DIAG_LVL != 0 ) set echo 
-
-#> Set Working, Input, and Output Directories
- setenv WORKDIR ${CMAQ_HOME}/CCTM/scripts          #> Working Directory. Where the runscript is.
- setenv OUTDIR  ${CMAQ_DATA}/output_CCTM_${RUNID}  #> Output Directory
- setenv INPDIR  ${CMAQ_DATA}/CMAQv5.3.2_Benchmark_2Day_Input/2016_12SE1 #> Input Directory
- setenv LOGDIR  ${OUTDIR}/LOGS     #> Log Directory Location
- setenv NMLpath ${BLD}             #> Location of Namelists. Common places are: 
-                                   #>   ${WORKDIR} | ${CCTM_SRC}/MECHS/${MECH} | ${BLD}
 
  echo ""
  echo "Working Directory is $WORKDIR"

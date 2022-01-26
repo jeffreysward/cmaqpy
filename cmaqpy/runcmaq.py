@@ -10,10 +10,11 @@ class CMAQModel:
     """
     This class provides a framework for running the CMAQ Model.
     """
-    def __init__(self, start_datetime, end_datetime, appl, coord_name, grid_name,setup_yaml='dirpaths.yml', compiler='gcc', compiler_vrsn='9.3.1', verbose=False):
+    def __init__(self, start_datetime, end_datetime, appl, coord_name, grid_name, chem_mech ='cb6r3_ae7_aq', setup_yaml='dirpaths.yml', compiler='gcc', compiler_vrsn='9.3.1', verbose=False):
         self.appl = appl
         self.coord_name = coord_name
         self.grid_name = grid_name
+        self.chem_mech = chem_mech
         self.compiler = compiler
         self.compiler_vrsn = compiler_vrsn
         self.verbose = verbose
@@ -30,9 +31,10 @@ class CMAQModel:
         dirs = fetch_yaml(setup_yaml)
         dirpaths = dirs.get('directory_paths')
         self.CMAQ_HOME = dirpaths.get('CMAQ_HOME')
-        self.MCIP_SCRIPTS = f'{self.CMAQ_HOME}/PREP/mcip/scripts/'
-        self.ICON_SCRIPTS = f'{self.CMAQ_HOME}/PREP/icon/scripts/'
-        self.BCON_SCRIPTS = f'{self.CMAQ_HOME}/PREP/bcon/scripts/'
+        self.MCIP_SCRIPTS = f'{self.CMAQ_HOME}/PREP/mcip/scripts'
+        self.ICON_SCRIPTS = f'{self.CMAQ_HOME}/PREP/icon/scripts'
+        self.BCON_SCRIPTS = f'{self.CMAQ_HOME}/PREP/bcon/scripts'
+        self.CCTM_SCRIPTS = f'{self.CMAQ_HOME}/CCTM/scripts'
         self.CMAQ_DATA = dirpaths.get('CMAQ_DATA')
         self.DIR_TEMPLATES = dirpaths.get('DIR_TEMPLATES')
         self.InMetDir = dirpaths.get('InMetDir')
@@ -220,8 +222,8 @@ class CMAQModel:
         """
         Setup and run BCON, which produces boundary conditions for CMAQ.
         """
-        ## SETUP ICON
-        # Copy the template ICON run script to the scripts directory
+        ## SETUP BCON
+        # Copy the template BCON run script to the scripts directory
         run_bcon_path = f'{self.BCON_SCRIPTS}/run_bcon.csh'
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_bcon.csh', run_bcon_path)
         os.system(cmd)
@@ -234,28 +236,28 @@ class CMAQModel:
             print(f'Problem reading run_bcon.csh')
             print(f'\t{e}')
 
-        # Write ICON runtime info to the run script.
+        # Write BCON runtime info to the run script.
         bcon_runtime =  f'#> Source the config_cmaq file to set the run environment\n'
         bcon_runtime += f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
-        #> Code Version
+        bcon_runtime += f'#> Code Version\n'
         bcon_runtime += f'set VRSN     = v532\n'
-        #> Application Name                    
+        bcon_runtime += f'#> Application Name\n'                    
         bcon_runtime += f'set APPL     = {self.appl}\n'
-        #> Boundary condition type [profile|regrid]                     
+        bcon_runtime += f'#> Boundary condition type [profile|regrid]\n'                     
         bcon_runtime += f'set BCTYPE   = {type}\n'
-        #> check GRIDDESC file for GRID_NAME options                  
+        bcon_runtime += f'#> check GRIDDESC file for GRID_NAME options\n'                 
         bcon_runtime += f'setenv GRID_NAME {self.grid_name}\n'
-        #> grid description file                    
+        bcon_runtime += f'#> grid description file\n'                    
         bcon_runtime += f'setenv GRIDDESC {self.CMAQ_DATA}/{self.appl}/mcip/GRIDDESC\n'
-        #> GCTP spheroid, use 20 for WRF-based modeling 
+        bcon_runtime += f'#> GCTP spheroid, use 20 for WRF-based modeling\n' 
         bcon_runtime += f'setenv IOAPI_ISPH 20\n'                     
-        #> turn on excess WRITE3 logging [ options: T | F ]
+        bcon_runtime += f'#> turn on excess WRITE3 logging [ options: T | F ]\n'
         bcon_runtime += f'setenv IOAPI_LOG_WRITE F\n'
-        #> support large timestep records (>2GB/timestep record) [ options: YES | NO ]     
+        bcon_runtime += f'#> support large timestep records (>2GB/timestep record) [ options: YES | NO ]\n'     
         bcon_runtime += f'setenv IOAPI_OFFSET_64 YES\n'
-        #> output file directory   
+        bcon_runtime += f'#> output file directory\n'   
         bcon_runtime += f'set OUTDIR   = {self.CMAQ_DATA}/{self.appl}/bcon\n'
-        #> define the model execution id
+        bcon_runtime += f'#> define the model execution id\n'
         bcon_runtime += f'setenv EXECUTION_ID $EXEC\n'
 
         with open(run_bcon_path, 'w') as run_script:
@@ -305,8 +307,45 @@ class CMAQModel:
                 print(f'BCON ran in: {utils.strfdelta(elapsed)}')
         return True
 
-    def run_cctm(self, ):
-        pass
+    def run_cctm(self, cctm_vrsn='v533'):
+        """
+        Setup and run CCTM, CMAQ's chemical transport model.
+        """
+        ## SETUP CCTM
+        # Copy the template CCTM run script to the scripts directory
+        run_cctm_path = f'{self.CCTM_SCRIPTS}/run_cctm.csh'
+        cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_cctm.csh', run_cctm_path)
+        os.system(cmd)
+
+        # Try to open the BCON run script as readonly,
+        # and print an error & exit if you cannot.
+        try:
+            run_cctm = utils.read_script(run_cctm_path)
+        except IOError as e:
+            print(f'Problem reading run_cctm.csh')
+            print(f'\t{e}')
+
+        cctm_runtime =  f'#> Toggle Diagnostic Mode which will print verbose information to standard output\n'
+        cctm_runtime += f'setenv CTM_DIAG_LVL 0\n'
+        cctm_runtime += f'#> Source the config_cmaq file to set the run environment\n'
+        cctm_runtime += f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
+        cctm_runtime += f'#> Set General Parameters for Configuring the Simulation\n'
+        cctm_runtime += f'set VRSN      = {cctm_vrsn}              #> Code Version - note this must be updated if using ISAM or DDM\n'
+        cctm_runtime += f'set PROC      = mpi               #> serial or mpi\n'
+        cctm_runtime += f'set MECH      = {self.chem_mech}      #> Mechanism ID\n'
+        cctm_runtime += f'set APPL      = {self.appl}  #> Application Name (e.g. Gridname)\n'
+        cctm_runtime += f'#> Define RUNID as any combination of parameters above or others. By default,\n'
+        cctm_runtime += f'#> this information will be collected into this one string, $RUNID, for easy\n'
+        cctm_runtime += f'#> referencing in output binaries and log files as well as in other scripts.\n'
+        cctm_runtime += f'setenv RUNID  {cctm_vrsn}_{self.compiler}{self.compiler_vrsn}_{self.appl}\n'
+        cctm_runtime += f'#> Set Working, Input, and Output Directories\n'
+        cctm_runtime += f'setenv WORKDIR {self.CCTM_SCRIPTS}    #> Working Directory. Where the runscript is.\n'
+        cctm_runtime += f'setenv OUTDIR  {self.CMAQ_DATA}/output_CCTM_$RUNID  #> Output Directory\n'
+        cctm_runtime += f'setenv INPDIR  {self.CMAQ_DATA}/{self.appl} #> Input Directory\n'
+
+        with open(run_cctm_path, 'w') as run_script:
+            run_script.write(run_cctm.replace('%RUNTIME%', run_cctm))
+        
 
     def finish_check(self, program):
         """
