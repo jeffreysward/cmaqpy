@@ -23,8 +23,8 @@ class CMAQModel:
         self.end_datetime = utils.format_date(end_datetime)
         self.delt = self.end_datetime - self.start_datetime
         if self.verbose:
-            print('Forecast starting on: {}'.format(self.forecast_start))
-            print('Forecast ending on: {}'.format(self.forecast_end))
+            print(f'Forecast starting on: {self.forecast_start}')
+            print(f'Forecast ending on: {self.forecast_end}')
 
         # Set working and WRF model directory names
         dirs = fetch_yaml(setup_yaml)
@@ -70,11 +70,9 @@ class CMAQModel:
 
         # Write IO info to the MCIP run script
         mcip_io =  f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
-        mcip_io += f'\n'
         mcip_io += f'set APPL       = {self.appl}'
         mcip_io += f'set CoordName  = {self.coord_name}'
         mcip_io += f'set GridName   = {self.grid_name}'
-        mcip_io += f'\n'
         mcip_io += f'set DataPath   = {self.CMAQ_DATA}'
         mcip_io += f'set InMetDir   = {self.InMetDir}'
         mcip_io += f'set InGeoDir   = {self.InGeoDir}'
@@ -90,7 +88,6 @@ class CMAQModel:
         for metfile in metfile_list:
             mcip_met += f'{self.InMetDir}/{metfile} \\n'
         mcip_met += f' )'
-        mcip_met += f'\n'
         mcip_met += f'set IfGeo      = "F"'
         mcip_met += f'set InGeoFile  = {self.InGeoDir}/{geo_file}'
 
@@ -98,8 +95,8 @@ class CMAQModel:
             run_script.write(run_mcip.replace('%MET%', mcip_met))
 
         # Write start/end info to MCIP run script
-        mcip_time =  f'set MCIP_START = 2018-01-01_01:00:00.0000'  # [UTC]
-        mcip_time += f'set MCIP_END   = 2018-01-11_23:00:00.0000'  # [UTC]
+        mcip_time =  f'set MCIP_START = {self.start_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}'  # [UTC]
+        mcip_time += f'set MCIP_END   = {self.end_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}'  # [UTC]
         mcip_time += f'set INTVL      = {t_step}' # [min]
 
         with open(run_mcip_path, 'w') as run_script:
@@ -127,7 +124,7 @@ class CMAQModel:
                 mcip_sim = self.finish_check('mcip')
         elapsed = datetime.datetime.now() - simstart
         if self.verbose:
-            print('MCIP ran in: ' + hf.strfdelta(elapsed))
+            print(f'MCIP ran in: {utils.strfdelta(elapsed)}')
 
     def run_icon(self, type='regrid'):
         # #ICON

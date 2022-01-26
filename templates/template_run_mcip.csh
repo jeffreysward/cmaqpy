@@ -122,18 +122,7 @@
 #   WorkDir    = Working Directory for Fortran links and namelist
 #-----------------------------------------------------------------------
 
-source $CMAQ_HOME/config_cmaq.csh gcc 9.3.1
-
-set APPL       = 180101
-set CoordName  = LamCon_111N_148W    # 16-character maximum
-set GridName   = 09NE        # 16-character maximum
-
-set DataPath   = $CMAQ_DATA
-set InMetDir   = /share/mzhang/jas983/wrf_data/met4ene/wrfout/ARW/2018-01-01_8mp4lw2sw2lsm5pbl3cu 
-set InGeoDir   = /share/mzhang/jas983/wrf_data/data/domain
-set OutDir     = $DataPath/mcip/$GridName
-set ProgDir    = $CMAQ_HOME/PREP/mcip/src
-set WorkDir    = $OutDir
+%IO%
 
 #-----------------------------------------------------------------------
 # Set name(s) of input meteorology file(s)
@@ -154,11 +143,7 @@ set WorkDir    = $OutDir
 #
 #-----------------------------------------------------------------------
 
-set InMetFiles = ( $InMetDir/wrfout_d01_2018-01-01_00:00:00 \
-                   $InMetDir/wrfout_d01_2018-01-07_22:40:30 )
-
-set IfGeo      = "F"
-set InGeoFile  = $InGeoDir/geo_em.d01.nc
+%MET%
 
 #-----------------------------------------------------------------------
 # Set user control options.
@@ -185,10 +170,7 @@ set LUVBOUT = 1
 #   INTVL:       Frequency of output [minutes]
 #-----------------------------------------------------------------------
 
-set MCIP_START = 2018-01-01_01:00:00.0000  # [UTC]
-set MCIP_END   = 2018-01-11_23:00:00.0000  # [UTC]
-
-set INTVL      = 60 # [min]
+%TIME%
 
 #-----------------------------------------------------------------------
 # Choose output format.
