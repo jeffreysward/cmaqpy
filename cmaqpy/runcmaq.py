@@ -30,9 +30,9 @@ class CMAQModel:
         dirs = fetch_yaml(setup_yaml)
         dirpaths = dirs.get('directory_paths')
         self.CMAQ_HOME = dirpaths.get('CMAQ_HOME')
-        self.MCIP_SCRIPTS = f'{self.CMAQ_HOME}PREP/mcip/scripts/'
-        self.ICON_SCRIPTS = f'{self.CMAQ_HOME}PREP/icon/scripts/'
-        self.BCON_SCRIPTS = f'{self.CMAQ_HOME}PREP/bcon/scripts/'
+        self.MCIP_SCRIPTS = f'{self.CMAQ_HOME}/PREP/mcip/scripts/'
+        self.ICON_SCRIPTS = f'{self.CMAQ_HOME}/PREP/icon/scripts/'
+        self.BCON_SCRIPTS = f'{self.CMAQ_HOME}/PREP/bcon/scripts/'
         self.CMAQ_DATA = dirpaths.get('CMAQ_DATA')
         self.DIR_TEMPLATES = dirpaths.get('DIR_TEMPLATES')
         self.InMetDir = dirpaths.get('InMetDir')
@@ -50,14 +50,14 @@ class CMAQModel:
         self.CMD_BCON = f'./run_bcon.csh >&! run_bcon_{self.appl}.log'
         self.CMD_CCTM = f'sbatch --requeue submit_cctm.csh'
 
-    def run_mcip(self, metfile_list=[], geo_file='', t_step=60):
+    def run_mcip(self, metfile_list=[], geo_file='', t_step=60, setup_only=False):
         """
-        Setup and run MCIP.
+        Setup and run MCIP, which formats meteorological files (e.g. wrfout*.nc) for CMAQ.
         """
         ## SETUP MCIP
         # Copy the template MCIP run script to the scripts directory
-        run_mcip_path = f'{self.MCIP_SCRIPTS}run_micp.csh'
-        cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}template_run_mcip.csh', run_mcip_path)
+        run_mcip_path = f'{self.MCIP_SCRIPTS}/run_micp.csh'
+        cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_mcip.csh', run_mcip_path)
         os.system(cmd)
 
         # Try to open the MCIP run script as readonly,
@@ -70,15 +70,15 @@ class CMAQModel:
 
         # Write IO info to the MCIP run script
         mcip_io =  f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
-        mcip_io += f'set APPL       = {self.appl}'
-        mcip_io += f'set CoordName  = {self.coord_name}'
-        mcip_io += f'set GridName   = {self.grid_name}'
-        mcip_io += f'set DataPath   = {self.CMAQ_DATA}'
-        mcip_io += f'set InMetDir   = {self.InMetDir}'
-        mcip_io += f'set InGeoDir   = {self.InGeoDir}'
-        mcip_io += f'set OutDir     = $DataPath/$GridName/mcip'
-        mcip_io += f'set ProgDir    = $CMAQ_HOME/PREP/mcip/src'
-        mcip_io += f'set WorkDir    = $OutDir'
+        mcip_io += f'set APPL       = {self.appl}\n'
+        mcip_io += f'set CoordName  = {self.coord_name}\n'
+        mcip_io += f'set GridName   = {self.grid_name}\n'
+        mcip_io += f'set DataPath   = {self.CMAQ_DATA}\n'
+        mcip_io += f'set InMetDir   = {self.InMetDir}\n'
+        mcip_io += f'set InGeoDir   = {self.InGeoDir}\n'
+        mcip_io += f'set OutDir     = $DataPath/$GridName/mcip\n'
+        mcip_io += f'set ProgDir    = $CMAQ_HOME/PREP/mcip/src\n'
+        mcip_io += f'set WorkDir    = $OutDir\n'
 
         with open(run_mcip_path, 'w') as run_script:
             run_script.write(run_mcip.replace('%IO%', mcip_io))
@@ -87,17 +87,17 @@ class CMAQModel:
         mcip_met = f'set InMetFiles = ( ' 
         for metfile in metfile_list:
             mcip_met += f'{self.InMetDir}/{metfile} \\n'
-        mcip_met += f' )'
-        mcip_met += f'set IfGeo      = "F"'
-        mcip_met += f'set InGeoFile  = {self.InGeoDir}/{geo_file}'
+        mcip_met += f' )\n'
+        mcip_met += f'set IfGeo      = "F"\n'
+        mcip_met += f'set InGeoFile  = {self.InGeoDir}/{geo_file}\n'
 
         with open(run_mcip_path, 'w') as run_script:
             run_script.write(run_mcip.replace('%MET%', mcip_met))
 
         # Write start/end info to MCIP run script
-        mcip_time =  f'set MCIP_START = {self.start_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}'  # [UTC]
-        mcip_time += f'set MCIP_END   = {self.end_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}'  # [UTC]
-        mcip_time += f'set INTVL      = {t_step}' # [min]
+        mcip_time =  f'set MCIP_START = {self.start_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}\n'  # [UTC]
+        mcip_time += f'set MCIP_END   = {self.end_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}\n'  # [UTC]
+        mcip_time += f'set INTVL      = {t_step}\n' # [min]
 
         with open(run_mcip_path, 'w') as run_script:
             run_script.write(run_mcip.replace('%TIME%', mcip_time))
@@ -106,61 +106,113 @@ class CMAQModel:
             print('Done writing MCIP run script!\n')
 
         ## RUN MCIP
-        os.system(self.CMD_MCIP)
-        # Sleep until the run_mcip_{self.appl}.log file exists
-        while not os.path.exists(f'{self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log'):
-            time.sleep(1)
-        # Begin geogrid simulation clock
-        simstart = datetime.datetime.now()
-        if self.verbose:
-            print('Starting MCIP at: ' + str(simstart))
-            sys.stdout.flush()
-        mcip_sim = self.finish_check('mcip')
-        while mcip_sim != 'complete':
-            if mcip_sim == 'failed':
-                return False
-            else:
-                time.sleep(2)
-                mcip_sim = self.finish_check('mcip')
-        elapsed = datetime.datetime.now() - simstart
-        if self.verbose:
-            print(f'MCIP ran in: {utils.strfdelta(elapsed)}')
+        if not setup_only:
+            os.system(self.CMD_MCIP)
+            # Sleep until the run_mcip_{self.appl}.log file exists
+            while not os.path.exists(f'{self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log'):
+                time.sleep(1)
+            # Begin geogrid simulation clock
+            simstart = datetime.datetime.now()
+            if self.verbose:
+                print('Starting MCIP at: ' + str(simstart))
+                sys.stdout.flush()
+            mcip_sim = self.finish_check('mcip')
+            while mcip_sim != 'complete':
+                if mcip_sim == 'failed':
+                    return False
+                else:
+                    time.sleep(2)
+                    mcip_sim = self.finish_check('mcip')
+            elapsed = datetime.datetime.now() - simstart
+            if self.verbose:
+                print(f'MCIP ran in: {utils.strfdelta(elapsed)}')
+        return True
 
-    def run_icon(self, type='regrid'):
-        # #ICON
-        # APPL     = 09NE                    #> Application Name
-        # ICTYPE   = profile                  #> Initial conditions type [profile|regrid]
-        # #> Horizontal grid definition 
-        # setenv GRID_NAME 09NE               #> check GRIDDESC file for GRID_NAME options
-        # setenv GRIDDESC $CMAQ_DATA/mcip/$APPL/GRIDDESC #> grid description file 
-        # setenv IOAPI_ISPH 20                     #> GCTP spheroid, use 20 for WRF-based modeling
+    def run_icon(self, type='regrid', coarse_grid_name='coarse', cctm_pfx='CCTM_CONC_v53_', setup_only=False):
+        """
+        Setup and run ICON, which produces initial conditions for CMAQ.
+        """
+        ## SETUP ICON
+        # Copy the template ICON run script to the scripts directory
+        run_icon_path = f'{self.ICON_SCRIPTS}/run_micp.csh'
+        cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_icon.csh', run_icon_path)
+        os.system(cmd)
 
-        # #> I/O Controls
-        # setenv IOAPI_LOG_WRITE F     #> turn on excess WRITE3 logging [ options: T | F ]
-        # setenv IOAPI_OFFSET_64 YES   #> support large timestep records (>2GB/timestep record) [ options: YES | NO ]
+        # Try to open the MCIP run script as readonly,
+        # and print an error & exit if you cannot.
+        try:
+            run_icon = utils.read_script(run_icon_path)
+        except IOError as e:
+            print(f'Problem reading run_micp.csh')
+            print(f'\t{e}')
 
-        # OUTDIR   = $CMAQ_HOME/data/icon       #> output file directory
+        # Write ICON runtime info to the run script.
+        icon_runtime = f'#> Source the config_cmaq file to set the run environment\n'
+        icon_runtime += f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
+        #> Code Version
+        icon_runtime += f'set VRSN     = v532\n'
+        #> Application Name                    
+        icon_runtime += f'set APPL       = {self.appl}\n'
+        #> Initial conditions type [profile|regrid]
+        icon_runtime += f'ICTYPE   = {type}\n'
+        #> check GRIDDESC file for GRID_NAME options
+        icon_runtime += f'setenv GRID_NAME {self.grid_name}\n'
+        #> grid description file path
+        icon_runtime += f'setenv GRIDDESC {self.CMAQ_DATA}/{self.appl}/mcip/GRIDDESC\n'
+        #> GCTP spheroid, use 20 for WRF-based modeling
+        icon_runtime += f'setenv IOAPI_ISPH 20\n'
+        #> turn on excess WRITE3 logging [ options: T | F ]
+        icon_runtime += f'setenv IOAPI_LOG_WRITE F\n'
+        #> support large timestep records (>2GB/timestep record) [ options: YES | NO ]     
+        icon_runtime += f'setenv IOAPI_OFFSET_64 YES\n'
+        #> output file directory   
+        icon_runtime += f'OUTDIR   = {self.CMAQ_DATA}/{self.appl}/icon\n'
+        #> define the model execution id
+        icon_runtime += f'setenv EXECUTION_ID $EXEC\n'
 
-        # set DATE = "2018-01-01"
-        # set YYYYJJJ  = `date -ud "${DATE}" +%Y%j`   #> Convert YYYY-MM-DD to YYYYJJJ
-        # set YYMMDD   = `date -ud "${DATE}" +%y%m%d` #> Convert YYYY-MM-DD to YYMMDD
-        # set YYYYMMDD = `date -ud "${DATE}" +%Y%m%d` #> Convert YYYY-MM-DD to YYYYMMDD
-        # #   setenv SDATE           ${YYYYJJJ}
-        # #   setenv STIME           000000
+        with open(run_icon_path, 'w') as run_script:
+            run_script.write(run_icon.replace('%RUNTIME%', icon_runtime))
 
-        # if ( $ICON_TYPE == regrid ) then
-        #     setenv CTM_CONC_1 /work/MOD3EVAL/sjr/CCTM_CONC_v53_intel18.0_2016_CONUS_test_${YYYYMMDD}.nc
-        #     setenv MET_CRO_3D_CRS /work/MOD3DATA/2016_12US1/met/mcip_v43_wrf_v381_ltng/METCRO3D.12US1.35L.${YYMMDD}
-        #     setenv MET_CRO_3D_FIN /work/MOD3DATA/SE53BENCH/met/mcip/METCRO3D_${YYMMDD}.nc
-        #     setenv INIT_CONC_1    "$OUTDIR/ICON_${VRSN}_${APPL}_${ICON_TYPE}_${YYYYMMDD} -v"
-        # endif
+        # Write input file info to the run script
+        icon_files =  f'    setenv SDATE           {self.start_datetime.strftime("%Y%j")}\n'
+        icon_files += f'    setenv STIME           {self.start_datetime.strftime("%H%M%S")}\n'
+        icon_files += f'if ( $ICON_TYPE == regrid ) then\n'
+        icon_files += f'    setenv CTM_CONC_1 {self.CMAQ_DATA}/{coarse_grid_name}/cctm/{cctm_pfx}{self.start_datetime.strftime("%Y%m%d")}.nc\n'
+        icon_files += f'    setenv MET_CRO_3D_CRS {self.CMAQ_DATA}/{coarse_grid_name}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}\n'
+        icon_files += f'    setenv MET_CRO_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}.nc\n'
+        icon_files += f'    setenv INIT_CONC_1    "$OUTDIR/ICON_$VRSN_{self.appl}_{type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
+        icon_files += f'endif\n'
+        icon_files += f'if ( $ICON_TYPE == profile ) then\n'
+        icon_files += f'    setenv IC_PROFILE $BLD/avprofile_cb6r3m_ae7_kmtbr_hemi2016_v53beta2_m3dry_col051_row068.csv\n'
+        icon_files += f'    setenv MET_CRO_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}.nc\n'
+        icon_files += f'    setenv INIT_CONC_1    "$OUTDIR/ICON_$VRSN_{self.appl}_{type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
+        icon_files += f'endif\n'
 
-        # if ( $ICON_TYPE == profile ) then
-        #     setenv IC_PROFILE $BLD/avprofile_cb6r3m_ae7_kmtbr_hemi2016_v53beta2_m3dry_col051_row068.csv
-        #     setenv MET_CRO_3D_FIN $CMAQ_DATA/mcip/$APPL/METCRO3D_${YYMMDD}.nc
-        #     setenv INIT_CONC_1    "$OUTDIR/ICON_${VRSN}_${APPL}_${ICON_TYPE}_${YYYYMMDD} -v"
-        # endif
-        pass
+        with open(run_icon_path, 'w') as run_script:
+            run_script.write(run_icon.replace('%FILES%', icon_files))
+
+        ## RUN ICON
+        if not setup_only:
+            os.system(self.CMD_ICON)
+            # Sleep until the run_icon_{self.appl}.log file exists
+            while not os.path.exists(f'{self.ICON_SCRIPTS}/run_icon_{self.appl}.log'):
+                time.sleep(1)
+            # Begin geogrid simulation clock
+            simstart = datetime.datetime.now()
+            if self.verbose:
+                print('Starting ICON at: ' + str(simstart))
+                sys.stdout.flush()
+            icon_sim = self.finish_check('icon')
+            while icon_sim != 'complete':
+                if icon_sim == 'failed':
+                    return False
+                else:
+                    time.sleep(2)
+                    icon_sim = self.finish_check('icon')
+            elapsed = datetime.datetime.now() - simstart
+            if self.verbose:
+                print(f'ICON ran in: {utils.strfdelta(elapsed)}')
+        return True
 
     def run_bcon(self, type='regrid'):
         # #BCON
