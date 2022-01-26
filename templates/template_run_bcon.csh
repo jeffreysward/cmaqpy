@@ -11,43 +11,19 @@
 #> Runtime Environment Options
 # ==================================================================
 
-#> Choose compiler and set up CMAQ environment with correct 
-#> libraries using config.cmaq. Options: intel | gcc | pgi
- setenv compiler gcc
- setenv compilervrsn 9.3.1
+%RUNTIME%
 
-#> Source the config_cmaq file to set the run environment
- pushd ../../../
- source ./config_cmaq.csh $compiler $compilervrsn
- popd
-
-#> Check that CMAQ_DATA is set:
+ #> Check that CMAQ_DATA is set:
  if ( ! -e $CMAQ_DATA ) then
     echo "   $CMAQ_DATA path does not exist"
     exit 1
  endif
  echo " "; echo " Input data path, CMAQ_DATA set to $CMAQ_DATA"; echo " "
 
-#> Set General Parameters for Configuring the Simulation
- set VRSN     = v532                    #> Code Version
- set APPL     = 09NE              #> Application Name
- set BCTYPE   = profile                  #> Boundary condition type [profile|regrid]
-
 #> Set the build directory:
  set BLD      = ${CMAQ_HOME}/PREP/bcon/scripts/BLD_BCON_${VRSN}_${compilerString}
  set EXEC     = BCON_${VRSN}.exe  
  cat $BLD/BCON_${VRSN}.cfg; echo " "; set echo
-
-#> Horizontal grid definition 
- setenv GRID_NAME 09NE               #> check GRIDDESC file for GRID_NAME options
- setenv GRIDDESC $CMAQ_DATA/mcip/$APPL/GRIDDESC #> grid description file 
- #setenv GRIDDESC /work/MOD3DATA/SE53BENCH/met/mcip/GRIDDESC
- setenv IOAPI_ISPH 20                     #> GCTP spheroid, use 20 for WRF-based modeling
-
-#> I/O Controls
- setenv IOAPI_LOG_WRITE F     #> turn on excess WRITE3 logging [ options: T | F ]
- setenv IOAPI_OFFSET_64 YES   #> support large timestep records (>2GB/timestep record) [ options: YES | NO ]
- setenv EXECUTION_ID $EXEC    #> define the model execution id
 
 # =====================================================================
 #> BCON Configuration Options
@@ -58,12 +34,6 @@
 # =====================================================================
 
  setenv BCON_TYPE ` echo $BCTYPE | tr "[A-Z]" "[a-z]" `
-
-# =====================================================================
-#> Input/Output Directories
-# =====================================================================
-
- set OUTDIR   = $CMAQ_HOME/data/bcon       #> output file directory
 
 # =====================================================================
 #> Input Files
@@ -86,26 +56,7 @@
 #     BNDY_CONC_1 = gridded BC file for target domain
 # =====================================================================
  
-    set DATE = "2018-01-01"
-    set YYYYJJJ  = `date -ud "${DATE}" +%Y%j`   #> Convert YYYY-MM-DD to YYYYJJJ
-    set YYMMDD   = `date -ud "${DATE}" +%y%m%d` #> Convert YYYY-MM-DD to YYMMDD
-    set YYYYMMDD = `date -ud "${DATE}" +%Y%m%d` #> Convert YYYY-MM-DD to YYYYMMDD
-#   setenv SDATE           ${YYYYJJJ}
-#   setenv STIME           000000
-#   setenv RUNLEN          240000
-
- if ( $BCON_TYPE == regrid ) then 
-    setenv CTM_CONC_1 /work/MOD3EVAL/sjr/CCTM_CONC_v53_intel18.0_2016_CONUS_test_${YYYYMMDD}.nc
-    setenv MET_CRO_3D_CRS /work/MOD3DATA/2016_12US1/met/mcip_v43_wrf_v381_ltng/METCRO3D.12US1.35L.${YYMMDD}
-    setenv MET_BDY_3D_FIN /work/MOD3DATA/SE53BENCH/met/mcip/METBDY3D_${YYMMDD}.nc
-    setenv BNDY_CONC_1    "$OUTDIR/BCON_${VRSN}_${APPL}_${BCON_TYPE}_${YYYYMMDD} -v"
- endif
-
- if ( $BCON_TYPE == profile ) then
-    setenv BC_PROFILE $BLD/avprofile_cb6r3m_ae7_kmtbr_hemi2016_v53beta2_m3dry_col051_row068.csv
-    setenv MET_BDY_3D_FIN $CMAQ_DATA/mcip/$APPL/METBDY3D_${YYMMDD}.nc
-    setenv BNDY_CONC_1    "$OUTDIR/BCON_${VRSN}_${APPL}_${BCON_TYPE}_${YYYYMMDD} -v"
- endif
+%INFILES%
 
 # =====================================================================
 #> Output File

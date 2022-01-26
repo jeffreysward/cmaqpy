@@ -134,16 +134,16 @@ class CMAQModel:
         """
         ## SETUP ICON
         # Copy the template ICON run script to the scripts directory
-        run_icon_path = f'{self.ICON_SCRIPTS}/run_micp.csh'
+        run_icon_path = f'{self.ICON_SCRIPTS}/run_icon.csh'
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_icon.csh', run_icon_path)
         os.system(cmd)
 
-        # Try to open the MCIP run script as readonly,
+        # Try to open the ICON run script as readonly,
         # and print an error & exit if you cannot.
         try:
             run_icon = utils.read_script(run_icon_path)
         except IOError as e:
-            print(f'Problem reading run_micp.csh')
+            print(f'Problem reading run_icon.csh')
             print(f'\t{e}')
 
         # Write ICON runtime info to the run script.
@@ -176,12 +176,14 @@ class CMAQModel:
         # Write input file info to the run script
         icon_files =  f'    setenv SDATE           {self.start_datetime.strftime("%Y%j")}\n'
         icon_files += f'    setenv STIME           {self.start_datetime.strftime("%H%M%S")}\n'
+        
         icon_files += f'if ( $ICON_TYPE == regrid ) then\n'
         icon_files += f'    setenv CTM_CONC_1 {self.CMAQ_DATA}/{coarse_grid_name}/cctm/{cctm_pfx}{self.start_datetime.strftime("%Y%m%d")}.nc\n'
         icon_files += f'    setenv MET_CRO_3D_CRS {self.CMAQ_DATA}/{coarse_grid_name}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}\n'
         icon_files += f'    setenv MET_CRO_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}.nc\n'
         icon_files += f'    setenv INIT_CONC_1    "$OUTDIR/ICON_$VRSN_{self.appl}_{type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
         icon_files += f'endif\n'
+        
         icon_files += f'if ( $ICON_TYPE == profile ) then\n'
         icon_files += f'    setenv IC_PROFILE $BLD/avprofile_cb6r3m_ae7_kmtbr_hemi2016_v53beta2_m3dry_col051_row068.csv\n'
         icon_files += f'    setenv MET_CRO_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}.nc\n'
@@ -189,7 +191,7 @@ class CMAQModel:
         icon_files += f'endif\n'
 
         with open(run_icon_path, 'w') as run_script:
-            run_script.write(run_icon.replace('%FILES%', icon_files))
+            run_script.write(run_icon.replace('%INFILES%', icon_files))
 
         ## RUN ICON
         if not setup_only:
@@ -214,37 +216,94 @@ class CMAQModel:
                 print(f'ICON ran in: {utils.strfdelta(elapsed)}')
         return True
 
-    def run_bcon(self, type='regrid'):
-        # #BCON
-        # set APPL     = 09NE                     #> Application Name
-        # set BCTYPE   = profile                  #> Boundary condition type [profile|regrid]
+    def run_bcon(self, type='regrid', coarse_grid_name='coarse', cctm_pfx='CCTM_CONC_v53_', setup_only=False):
+        """
+        Setup and run BCON, which produces boundary conditions for CMAQ.
+        """
+        ## SETUP ICON
+        # Copy the template ICON run script to the scripts directory
+        run_bcon_path = f'{self.BCON_SCRIPTS}/run_bcon.csh'
+        cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_bcon.csh', run_bcon_path)
+        os.system(cmd)
 
-        # #> Horizontal grid definition 
-        # setenv GRID_NAME 09NE                   #> check GRIDDESC file for GRID_NAME options
-        # setenv GRIDDESC $CMAQ_DATA/mcip/$APPL/GRIDDESC #> grid description file 
-        # setenv IOAPI_ISPH 20                     #> GCTP spheroid, use 20 for WRF-based modeling
+        # Try to open the BCON run script as readonly,
+        # and print an error & exit if you cannot.
+        try:
+            run_bcon = utils.read_script(run_bcon_path)
+        except IOError as e:
+            print(f'Problem reading run_bcon.csh')
+            print(f'\t{e}')
 
-        # #> I/O Controls
-        # setenv IOAPI_LOG_WRITE F     #> turn on excess WRITE3 logging [ options: T | F ]
-        # setenv IOAPI_OFFSET_64 YES   #> support large timestep records (>2GB/timestep record) [ options: YES | NO ]
+        # Write ICON runtime info to the run script.
+        bcon_runtime =  f'#> Source the config_cmaq file to set the run environment\n'
+        bcon_runtime += f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
+        #> Code Version
+        bcon_runtime += f'set VRSN     = v532\n'
+        #> Application Name                    
+        bcon_runtime += f'set APPL     = {self.appl}\n'
+        #> Boundary condition type [profile|regrid]                     
+        bcon_runtime += f'set BCTYPE   = {type}\n'
+        #> check GRIDDESC file for GRID_NAME options                  
+        bcon_runtime += f'setenv GRID_NAME {self.grid_name}\n'
+        #> grid description file                    
+        bcon_runtime += f'setenv GRIDDESC {self.CMAQ_DATA}/{self.appl}/mcip/GRIDDESC\n'
+        #> GCTP spheroid, use 20 for WRF-based modeling 
+        bcon_runtime += f'setenv IOAPI_ISPH 20\n'                     
+        #> turn on excess WRITE3 logging [ options: T | F ]
+        bcon_runtime += f'setenv IOAPI_LOG_WRITE F\n'
+        #> support large timestep records (>2GB/timestep record) [ options: YES | NO ]     
+        bcon_runtime += f'setenv IOAPI_OFFSET_64 YES\n'
+        #> output file directory   
+        bcon_runtime += f'set OUTDIR   = {self.CMAQ_DATA}/{self.appl}/bcon\n'
+        #> define the model execution id
+        bcon_runtime += f'setenv EXECUTION_ID $EXEC\n'
 
-        # set OUTDIR   = $CMAQ_HOME/data/bcon       #> output file directory
+        with open(run_bcon_path, 'w') as run_script:
+            run_script.write(run_bcon.replace('%RUNTIME%', bcon_runtime))       
 
-        # set DATE = "2018-01-01"
+        # Write input file info to the run script
+        bcon_files =  f'    setenv SDATE           {self.start_datetime.strftime("%Y%j")}\n'
+        bcon_files += f'    setenv STIME           {self.start_datetime.strftime("%H%M%S")}\n'
+        bcon_files += f'    setenv RUNLEN          {self.delt.strftime("%H%M%S")}\n'   
+        
+        bcon_files += f' if ( $BCON_TYPE == regrid ) then\n'
+        bcon_files += f'     setenv CTM_CONC_1 {self.CMAQ_DATA}/{coarse_grid_name}/cctm/{cctm_pfx}{self.start_datetime.strftime("%Y%m%d")}.nc\n'
+        bcon_files += f'     setenv MET_CRO_3D_CRS {self.CMAQ_DATA}/{coarse_grid_name}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}\n'
+        bcon_files += f'     setenv MET_BDY_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METBDY3D_{self.start_datetime.strftime("%y%m%d")}.nc\n'
+        bcon_files += f'     setenv BNDY_CONC_1    "$OUTDIR/BCON_$VRSN_{self.appl}_{type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
+        bcon_files += f' endif\n'
+        
+        bcon_files += f' if ( $BCON_TYPE == profile ) then\n'
+        bcon_files += f'     setenv BC_PROFILE $BLD/avprofile_cb6r3m_ae7_kmtbr_hemi2016_v53beta2_m3dry_col051_row068.csv\n'
+        bcon_files += f'     setenv MET_BDY_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METBDY3D_{self.start_datetime.strftime("%y%m%d")}.nc\n'
+        bcon_files += f'     setenv BNDY_CONC_1    "$OUTDIR/BCON_$VRSN_{self.appl}_{type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
+        bcon_files += f' endif\n'
 
-        # if ( $BCON_TYPE == regrid ) then
-        #     setenv CTM_CONC_1 /work/MOD3EVAL/sjr/CCTM_CONC_v53_intel18.0_2016_CONUS_test_${YYYYMMDD}.nc
-        #     setenv MET_CRO_3D_CRS /work/MOD3DATA/2016_12US1/met/mcip_v43_wrf_v381_ltng/METCRO3D.12US1.35L.${YYMMDD}
-        #     setenv MET_BDY_3D_FIN /work/MOD3DATA/SE53BENCH/met/mcip/METBDY3D_${YYMMDD}.nc
-        #     setenv BNDY_CONC_1    "$OUTDIR/BCON_${VRSN}_${APPL}_${BCON_TYPE}_${YYYYMMDD} -v"
-        # endif
-
-        # if ( $BCON_TYPE == profile ) then
-        #     setenv BC_PROFILE $BLD/avprofile_cb6r3m_ae7_kmtbr_hemi2016_v53beta2_m3dry_col051_row068.csv
-        #     setenv MET_BDY_3D_FIN $CMAQ_DATA/mcip/$APPL/METBDY3D_${YYMMDD}.nc
-        #     setenv BNDY_CONC_1    "$OUTDIR/BCON_${VRSN}_${APPL}_${BCON_TYPE}_${YYYYMMDD} -v"
-        # endif
-        pass
+        with open(run_bcon_path, 'w') as run_script:
+            run_script.write(run_bcon.replace('%INFILES%', bcon_files))
+        
+        ## RUN BCON
+        if not setup_only:
+            os.system(self.CMD_BCON)
+            # Sleep until the run_bcon_{self.appl}.log file exists
+            while not os.path.exists(f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}.log'):
+                time.sleep(1)
+            # Begin geogrid simulation clock
+            simstart = datetime.datetime.now()
+            if self.verbose:
+                print('Starting BCON at: ' + str(simstart))
+                sys.stdout.flush()
+            bcon_sim = self.finish_check('bcon')
+            while bcon_sim != 'complete':
+                if bcon_sim == 'failed':
+                    return False
+                else:
+                    time.sleep(2)
+                    bcon_sim = self.finish_check('bcon')
+            elapsed = datetime.datetime.now() - simstart
+            if self.verbose:
+                print(f'BCON ran in: {utils.strfdelta(elapsed)}')
+        return True
 
     def run_cctm(self, ):
         pass
