@@ -15,7 +15,7 @@
 
 echo 'Start Model Run At ' `date`
 
-%RUNTIME%
+%SETUP%
 
  setenv LOGDIR  ${OUTDIR}/LOGS     #> Log Directory Location
  setenv NMLpath ${BLD}             #> Location of Namelists. Common places are: 
@@ -40,21 +40,13 @@ echo 'Start Model Run At ' `date`
 #> CCTM Configuration Options
 # =====================================================================
 
-#> Set Start and End Days for looping
- setenv NEW_START TRUE             #> Set to FALSE for model restart
- set START_DATE = "2016-07-01"     #> beginning date (July 1, 2016)
- set END_DATE   = "2016-07-01"     #> ending date    (July 1, 2016)
-
-#> Set Timestepping Parameters
-set STTIME     = 000000            #> beginning GMT time (HHMMSS)
-set NSTEPS     = 240000            #> time duration (HHMMSS) for this run
-set TSTEP      = 010000            #> output time step interval (HHMMSS)
+%TIME%
 
 #> Horizontal domain decomposition
 if ( $PROC == serial ) then
    setenv NPCOL_NPROW "1 1"; set NPROCS   = 1 # single processor setting
 else
-   @ NPCOL  =  4; @ NPROW =  4
+   %PROC%   
    @ NPROCS = $NPCOL * $NPROW
    setenv NPCOL_NPROW "$NPCOL $NPROW"; 
 endif
@@ -63,9 +55,6 @@ endif
 setenv EXECUTION_ID "CMAQ_CCTM${VRSN}_`id -u -n`_`date -u +%Y%m%d_%H%M%S_%N`"    #> Inform IO/API of the Execution ID
 echo ""
 echo "---CMAQ EXECUTION ID: $EXECUTION_ID ---"
-
-#> Keep or Delete Existing Output Files
-set CLOBBER_DATA = TRUE 
 
 #> Logfile Options
 #> Master Log File Name; uncomment to write standard output to a log, otherwise write to screen
@@ -77,9 +66,6 @@ setenv PRINT_PROC_TIME Y           #> Print timing for all science subprocesses 
                                    #>   [ default: TRUE or Y ]
 setenv STDOUT T                    #> Override I/O-API trying to write information to both the processor 
                                    #>   logs and STDOUT [ options: T | F ]
-
-setenv GRID_NAME 2016_12SE1         #> check GRIDDESC file for GRID_NAME options
-setenv GRIDDESC $INPDIR/GRIDDESC    #> grid description file
 
 #> Retrieve the number of columns, rows, and layers in this simulation
 set NZ = 35

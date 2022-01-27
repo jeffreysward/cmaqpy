@@ -113,7 +113,7 @@ class CMAQModel:
             # Sleep until the run_mcip_{self.appl}.log file exists
             while not os.path.exists(f'{self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log'):
                 time.sleep(1)
-            # Begin geogrid simulation clock
+            # Begin MCIP simulation clock
             simstart = datetime.datetime.now()
             if self.verbose:
                 print('Starting MCIP at: ' + str(simstart))
@@ -201,7 +201,7 @@ class CMAQModel:
             # Sleep until the run_icon_{self.appl}.log file exists
             while not os.path.exists(f'{self.ICON_SCRIPTS}/run_icon_{self.appl}.log'):
                 time.sleep(1)
-            # Begin geogrid simulation clock
+            # Begin ICON simulation clock
             simstart = datetime.datetime.now()
             if self.verbose:
                 print('Starting ICON at: ' + str(simstart))
@@ -288,9 +288,9 @@ class CMAQModel:
         if not setup_only:
             os.system(self.CMD_BCON)
             # Sleep until the run_bcon_{self.appl}.log file exists
-            while not os.path.exists(f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}.log'):
+            while not os.path.exists(f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}.log'):   
                 time.sleep(1)
-            # Begin geogrid simulation clock
+            # Begin BCON simulation clock
             simstart = datetime.datetime.now()
             if self.verbose:
                 print('Starting BCON at: ' + str(simstart))
@@ -307,7 +307,7 @@ class CMAQModel:
                 print(f'BCON ran in: {utils.strfdelta(elapsed)}')
         return True
 
-    def run_cctm(self, cctm_vrsn='v533'):
+    def run_cctm(self, cctm_vrsn='v533', delete_existing_output='TRUE', new_sim='TRUE', tstep='010000', n_procs=16, setup_only=False):
         """
         Setup and run CCTM, CMAQ's chemical transport model.
         """
@@ -325,6 +325,7 @@ class CMAQModel:
             print(f'Problem reading run_cctm.csh')
             print(f'\t{e}')
 
+        # Write CCTM setup options to the run script
         cctm_runtime =  f'#> Toggle Diagnostic Mode which will print verbose information to standard output\n'
         cctm_runtime += f'setenv CTM_DIAG_LVL 0\n'
         cctm_runtime += f'#> Source the config_cmaq file to set the run environment\n'
@@ -342,10 +343,69 @@ class CMAQModel:
         cctm_runtime += f'setenv WORKDIR {self.CCTM_SCRIPTS}    #> Working Directory. Where the runscript is.\n'
         cctm_runtime += f'setenv OUTDIR  {self.CMAQ_DATA}/output_CCTM_$RUNID  #> Output Directory\n'
         cctm_runtime += f'setenv INPDIR  {self.CMAQ_DATA}/{self.appl} #> Input Directory\n'
+        cctm_runtime += f'setenv GRIDDESC $INPDIR/GRIDDESC    #> grid description file\n'
+        cctm_runtime += f'setenv GRID_NAME {self.grid_name}         #> check GRIDDESC file for GRID_NAME options\n'
+        cctm_runtime += f'#> Keep or Delete Existing Output Files\n'
+        cctm_runtime += f'set CLOBBER_DATA = {delete_existing_output}\n' 
 
         with open(run_cctm_path, 'w') as run_script:
-            run_script.write(run_cctm.replace('%RUNTIME%', run_cctm))
+            run_script.write(run_cctm.replace('%SETUP%', cctm_runtime))
+
+        # Write CCTM start, end, and timestepping options to the run script
+        cctm_time =  f'#> Set Start and End Days for looping\n'
+        cctm_time += f'setenv NEW_START {new_sim}        #> Set to FALSE for model restart\n'
+        cctm_time += f'set START_DATE = "{self.start_datetime.strftime("%Y-%m-%d")}"     #> beginning date\n'
+        cctm_time += f'set END_DATE   = "{self.end_datetime.strftime("%Y-%m-%d")}"     #> ending date\n'
+        cctm_time += f'#> Set Timestepping Parameters\n'
+        cctm_time += f'set STTIME     = {self.start_datetime.strftime("%H%M%S")}            #> beginning GMT time (HHMMSS)\n'
+        cctm_time += f'set NSTEPS     = {self.delt.strftime("%H%M%S")}            #> time duration (HHMMSS) for this run\n'
+        cctm_time += f'set TSTEP      = {tstep}            #> output time step interval (HHMMSS)\n'
+
+        with open(run_cctm_path, 'w') as run_script:
+            run_script.write(run_cctm.replace('%TIME%', cctm_time))
+
+        # Control domain subsetting among processors -- these will always be closest to a square
+        if n_procs == 8:
+            cctm_proc = '@ NPCOL  =  2; @ NPROW =  4'
+        elif n_procs == 12:
+            cctm_proc = '@ NPCOL  =  3; @ NPROW =  4'
+        elif n_procs == 16:
+            cctm_proc = '@ NPCOL  =  4; @ NPROW =  4'
+        if n_procs == 24:
+            cctm_proc = '@ NPCOL  =  4; @ NPROW =  6'
+        if n_procs == 32:
+            cctm_proc = '@ NPCOL  =  4; @ NPROW =  8'
+        if n_procs == 48:
+            cctm_proc = '@ NPCOL  =  6; @ NPROW =  8'
+        else:
+            print(f'No {n_procs} processor setup has been specified. Use [8, 12, 16, 24, 32, or 48].')
+            raise ValueError
+
+        with open(run_cctm_path, 'w') as run_script:
+            run_script.write(run_cctm.replace('%PROC%', cctm_proc))
         
+        ## RUN CCTM
+        if not setup_only:
+            os.system(self.CMD_CCTM)
+            # Sleep until the run_cctm_{self.appl}.log file exists
+            while not os.path.exists(f'{self.CCTM_SCRIPTS}/run_cctm_{self.appl}.log'): #!!!!!! THIS IS NOT ACTUALLY THE NAME OF THE LOG FILE
+                time.sleep(1)
+            # Begin CCTM simulation clock
+            simstart = datetime.datetime.now()
+            if self.verbose:
+                print('Starting CCTM at: ' + str(simstart))
+                sys.stdout.flush()
+            cctm_sim = self.finish_check('cctm')
+            while cctm_sim != 'complete':
+                if cctm_sim == 'failed':
+                    return False
+                else:
+                    time.sleep(2)
+                    cctm_sim = self.finish_check('cctm')
+            elapsed = datetime.datetime.now() - simstart
+            if self.verbose:
+                print(f'CCTM ran in: {utils.strfdelta(elapsed)}')
+        return True
 
     def finish_check(self, program):
         """
