@@ -24,8 +24,8 @@ class CMAQModel:
         self.end_datetime = utils.format_date(end_datetime)
         self.delt = self.end_datetime - self.start_datetime
         if self.verbose:
-            print(f'Forecast starting on: {self.forecast_start}')
-            print(f'Forecast ending on: {self.forecast_end}')
+            print(f'Forecast starting on: {self.start_datetime}')
+            print(f'Forecast ending on: {self.end_datetime}')
 
         # Set working and WRF model directory names
         dirs = fetch_yaml(setup_yaml)
@@ -52,23 +52,15 @@ class CMAQModel:
         self.CMD_BCON = f'./run_bcon.csh >&! run_bcon_{self.appl}.log'
         self.CMD_CCTM = f'sbatch --requeue submit_cctm.csh'
 
-    def run_mcip(self, metfile_list=[], geo_file='', t_step=60, setup_only=False):
+    def run_mcip(self, metfile_list=[], geo_file='geo_em.d01.nc', t_step=60, setup_only=False):
         """
         Setup and run MCIP, which formats meteorological files (e.g. wrfout*.nc) for CMAQ.
         """
         ## SETUP MCIP
         # Copy the template MCIP run script to the scripts directory
-        run_mcip_path = f'{self.MCIP_SCRIPTS}/run_micp.csh'
+        run_mcip_path = f'{self.MCIP_SCRIPTS}/run_mcip.csh'
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_mcip.csh', run_mcip_path)
         os.system(cmd)
-
-        # Try to open the MCIP run script as readonly,
-        # and print an error & exit if you cannot.
-        try:
-            run_mcip = utils.read_script(run_mcip_path)
-        except IOError as e:
-            print(f'Problem reading run_micp.csh')
-            print(f'\t{e}')
 
         # Write IO info to the MCIP run script
         mcip_io =  f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
@@ -81,28 +73,24 @@ class CMAQModel:
         mcip_io += f'set OutDir     = $DataPath/$GridName/mcip\n'
         mcip_io += f'set ProgDir    = $CMAQ_HOME/PREP/mcip/src\n'
         mcip_io += f'set WorkDir    = $OutDir\n'
-
-        with open(run_mcip_path, 'w') as run_script:
-            run_script.write(run_mcip.replace('%IO%', mcip_io))
+        utils.write_to_template(run_mcip_path, mcip_io, id='%IO%')
 
         # Write met info to the MCIP run script
         mcip_met = f'set InMetFiles = ( ' 
-        for metfile in metfile_list:
-            mcip_met += f'{self.InMetDir}/{metfile} \\n'
-        mcip_met += f' )\n'
+        for ii, metfile in enumerate(metfile_list):
+            if ii < len(metfile_list) - 1:
+                mcip_met += f'InMetDir/{metfile} \\\n'
+            else:
+                mcip_met += f'InMetDir/{metfile} )\n'
         mcip_met += f'set IfGeo      = "F"\n'
         mcip_met += f'set InGeoFile  = {self.InGeoDir}/{geo_file}\n'
-
-        with open(run_mcip_path, 'w') as run_script:
-            run_script.write(run_mcip.replace('%MET%', mcip_met))
+        utils.write_to_template(run_mcip_path, mcip_met, id='%MET%')
 
         # Write start/end info to MCIP run script
         mcip_time =  f'set MCIP_START = {self.start_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}\n'  # [UTC]
         mcip_time += f'set MCIP_END   = {self.end_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}\n'  # [UTC]
         mcip_time += f'set INTVL      = {t_step}\n' # [min]
-
-        with open(run_mcip_path, 'w') as run_script:
-            run_script.write(run_mcip.replace('%TIME%', mcip_time))
+        utils.write_to_template(run_mcip_path, mcip_time, id='%TIME%')
 
         if self.verbose:
             print('Done writing MCIP run script!\n')
@@ -140,14 +128,6 @@ class CMAQModel:
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_icon.csh', run_icon_path)
         os.system(cmd)
 
-        # Try to open the ICON run script as readonly,
-        # and print an error & exit if you cannot.
-        try:
-            run_icon = utils.read_script(run_icon_path)
-        except IOError as e:
-            print(f'Problem reading run_icon.csh')
-            print(f'\t{e}')
-
         # Write ICON runtime info to the run script.
         icon_runtime = f'#> Source the config_cmaq file to set the run environment\n'
         icon_runtime += f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
@@ -171,29 +151,23 @@ class CMAQModel:
         icon_runtime += f'OUTDIR   = {self.CMAQ_DATA}/{self.appl}/icon\n'
         #> define the model execution id
         icon_runtime += f'setenv EXECUTION_ID $EXEC\n'
-
-        with open(run_icon_path, 'w') as run_script:
-            run_script.write(run_icon.replace('%RUNTIME%', icon_runtime))
+        utils.write_to_template(run_icon_path, icon_runtime, id='%RUNTIME%')
 
         # Write input file info to the run script
         icon_files =  f'    setenv SDATE           {self.start_datetime.strftime("%Y%j")}\n'
         icon_files += f'    setenv STIME           {self.start_datetime.strftime("%H%M%S")}\n'
-        
         icon_files += f'if ( $ICON_TYPE == regrid ) then\n'
         icon_files += f'    setenv CTM_CONC_1 {self.CMAQ_DATA}/{coarse_grid_name}/cctm/{cctm_pfx}{self.start_datetime.strftime("%Y%m%d")}.nc\n'
         icon_files += f'    setenv MET_CRO_3D_CRS {self.CMAQ_DATA}/{coarse_grid_name}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}\n'
         icon_files += f'    setenv MET_CRO_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}.nc\n'
         icon_files += f'    setenv INIT_CONC_1    "$OUTDIR/ICON_$VRSN_{self.appl}_{type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
         icon_files += f'endif\n'
-        
         icon_files += f'if ( $ICON_TYPE == profile ) then\n'
         icon_files += f'    setenv IC_PROFILE $BLD/avprofile_cb6r3m_ae7_kmtbr_hemi2016_v53beta2_m3dry_col051_row068.csv\n'
         icon_files += f'    setenv MET_CRO_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}.nc\n'
         icon_files += f'    setenv INIT_CONC_1    "$OUTDIR/ICON_$VRSN_{self.appl}_{type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
         icon_files += f'endif\n'
-
-        with open(run_icon_path, 'w') as run_script:
-            run_script.write(run_icon.replace('%INFILES%', icon_files))
+        utils.write_to_template(run_icon_path, icon_files, id='%INFILES%')
 
         ## RUN ICON
         if not setup_only:
@@ -228,14 +202,6 @@ class CMAQModel:
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_bcon.csh', run_bcon_path)
         os.system(cmd)
 
-        # Try to open the BCON run script as readonly,
-        # and print an error & exit if you cannot.
-        try:
-            run_bcon = utils.read_script(run_bcon_path)
-        except IOError as e:
-            print(f'Problem reading run_bcon.csh')
-            print(f'\t{e}')
-
         # Write BCON runtime info to the run script.
         bcon_runtime =  f'#> Source the config_cmaq file to set the run environment\n'
         bcon_runtime += f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
@@ -259,9 +225,7 @@ class CMAQModel:
         bcon_runtime += f'set OUTDIR   = {self.CMAQ_DATA}/{self.appl}/bcon\n'
         bcon_runtime += f'#> define the model execution id\n'
         bcon_runtime += f'setenv EXECUTION_ID $EXEC\n'
-
-        with open(run_bcon_path, 'w') as run_script:
-            run_script.write(run_bcon.replace('%RUNTIME%', bcon_runtime))       
+        utils.write_to_template(run_bcon_path, bcon_runtime, id='%RUNTIME%')    
 
         # Write input file info to the run script
         bcon_files =  f'    setenv SDATE           {self.start_datetime.strftime("%Y%j")}\n'
@@ -280,9 +244,7 @@ class CMAQModel:
         bcon_files += f'     setenv MET_BDY_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METBDY3D_{self.start_datetime.strftime("%y%m%d")}.nc\n'
         bcon_files += f'     setenv BNDY_CONC_1    "$OUTDIR/BCON_$VRSN_{self.appl}_{type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
         bcon_files += f' endif\n'
-
-        with open(run_bcon_path, 'w') as run_script:
-            run_script.write(run_bcon.replace('%INFILES%', bcon_files))
+        utils.write_to_template(run_bcon_path, bcon_files, id='%INFILES%')
         
         ## RUN BCON
         if not setup_only:
@@ -317,14 +279,6 @@ class CMAQModel:
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_cctm.csh', run_cctm_path)
         os.system(cmd)
 
-        # Try to open the BCON run script as readonly,
-        # and print an error & exit if you cannot.
-        try:
-            run_cctm = utils.read_script(run_cctm_path)
-        except IOError as e:
-            print(f'Problem reading run_cctm.csh')
-            print(f'\t{e}')
-
         # Write CCTM setup options to the run script
         cctm_runtime =  f'#> Toggle Diagnostic Mode which will print verbose information to standard output\n'
         cctm_runtime += f'setenv CTM_DIAG_LVL 0\n'
@@ -346,10 +300,8 @@ class CMAQModel:
         cctm_runtime += f'setenv GRIDDESC $INPDIR/GRIDDESC    #> grid description file\n'
         cctm_runtime += f'setenv GRID_NAME {self.grid_name}         #> check GRIDDESC file for GRID_NAME options\n'
         cctm_runtime += f'#> Keep or Delete Existing Output Files\n'
-        cctm_runtime += f'set CLOBBER_DATA = {delete_existing_output}\n' 
-
-        with open(run_cctm_path, 'w') as run_script:
-            run_script.write(run_cctm.replace('%SETUP%', cctm_runtime))
+        cctm_runtime += f'set CLOBBER_DATA = {delete_existing_output}\n'
+        utils.write_to_template(run_cctm_path, cctm_runtime, id='%SETUP%')
 
         # Write CCTM start, end, and timestepping options to the run script
         cctm_time =  f'#> Set Start and End Days for looping\n'
@@ -360,9 +312,7 @@ class CMAQModel:
         cctm_time += f'set STTIME     = {self.start_datetime.strftime("%H%M%S")}            #> beginning GMT time (HHMMSS)\n'
         cctm_time += f'set NSTEPS     = {self.delt.strftime("%H%M%S")}            #> time duration (HHMMSS) for this run\n'
         cctm_time += f'set TSTEP      = {tstep}            #> output time step interval (HHMMSS)\n'
-
-        with open(run_cctm_path, 'w') as run_script:
-            run_script.write(run_cctm.replace('%TIME%', cctm_time))
+        utils.write_to_template(run_cctm_path, cctm_time, id='%TIME%')
 
         # Control domain subsetting among processors -- these will always be closest to a square
         if n_procs == 8:
@@ -380,9 +330,7 @@ class CMAQModel:
         else:
             print(f'No {n_procs} processor setup has been specified. Use [8, 12, 16, 24, 32, or 48].')
             raise ValueError
-
-        with open(run_cctm_path, 'w') as run_script:
-            run_script.write(run_cctm.replace('%PROC%', cctm_proc))
+        utils.write_to_template(run_cctm_path, cctm_proc, id='%PROC%')
         
         ## RUN CCTM
         if not setup_only:

@@ -5,6 +5,7 @@ Known Issues/Wishlist:
 
 """
 import datetime
+import string
 
 
 def format_date(in_date):
@@ -81,6 +82,24 @@ def strfdelta(tdelta, fmt='{H:02}h {M:02}m {S:02}s', inputtype='timedelta'):
         if field in desired_fields and field in constants:
             values[field], remainder = divmod(remainder, constants[field])
     return f.format(fmt, **values)
+
+
+def write_to_template(template_path, txt_to_write, id='%REPLACE_HERE%'):
+    """
+    Replace a placeholder ID within a template file with desired text.
+    """
+    try:
+        with open(template_path, 'r') as template:
+            # Read the file into memory
+            old_data = template.read()
+            # Write new text in the location specified by the "id"
+            new_data = old_data.replace(id, txt_to_write)
+        with open(template_path, 'w') as script:
+            # Overwrite the old file
+            script.write(new_data)
+    except IOError as e:
+        print(f'Problem reading {template_path}')
+        print(f'\t{e}')
     
 
 def read_script(file):
