@@ -24,8 +24,8 @@ class CMAQModel:
         self.end_datetime = utils.format_date(end_datetime)
         self.delt = self.end_datetime - self.start_datetime
         if self.verbose:
-            print(f'Forecast starting on: {self.start_datetime}')
-            print(f'Forecast ending on: {self.end_datetime}')
+            print(f'CMAQ run starting on: {self.start_datetime}')
+            print(f'CMAQ run ending on: {self.end_datetime}')
 
         # Set working and WRF model directory names
         dirs = fetch_yaml(setup_yaml)
@@ -50,7 +50,7 @@ class CMAQModel:
         self.CMD_MCIP = f'./run_mcip.csh >&! run_mcip_{self.appl}.log'
         self.CMD_ICON = f'./run_icon.csh >&! run_icon_{self.appl}.log'
         self.CMD_BCON = f'./run_bcon.csh >&! run_bcon_{self.appl}.log'
-        self.CMD_CCTM = f'sbatch --requeue submit_cctm.csh'
+        self.CMD_CCTM = f'sbatch --requeue {self.CCTM_SCRIPTS}/submit_cctm.csh'
 
     def run_mcip(self, metfile_list=[], geo_file='geo_em.d01.nc', t_step=60, setup_only=False):
         """
@@ -269,7 +269,7 @@ class CMAQModel:
                 print(f'BCON ran in: {utils.strfdelta(elapsed)}')
         return True
 
-    def run_cctm(self, cctm_vrsn='v533', delete_existing_output='TRUE', new_sim='TRUE', tstep='010000', n_procs=16, setup_only=False):
+    def run_cctm(self, cctm_vrsn='v533', delete_existing_output='TRUE', new_sim='TRUE', tstep='010000', n_procs=16, run_hours=24, setup_only=False):
         """
         Setup and run CCTM, CMAQ's chemical transport model.
         """
@@ -278,12 +278,18 @@ class CMAQModel:
         run_cctm_path = f'{self.CCTM_SCRIPTS}/run_cctm.csh'
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_cctm.csh', run_cctm_path)
         os.system(cmd)
+        # Copy the template CCTM submission script to the scripts directory
+        submit_cctm_path = f'{self.CCTM_SCRIPTS}/submit_cctm.csh'
+        cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_submit_cctm.csh', submit_cctm_path)
+        os.system(cmd)
 
         # Write CCTM setup options to the run script
         cctm_runtime =  f'#> Toggle Diagnostic Mode which will print verbose information to standard output\n'
         cctm_runtime += f'setenv CTM_DIAG_LVL 0\n'
         cctm_runtime += f'#> Source the config_cmaq file to set the run environment\n'
         cctm_runtime += f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
+        cctm_runtime += f'#> Change back to the CCTM scripts directory\n'
+        cctm_runtime += f'cd {self.CCTM_SCRIPTS}\n'
         cctm_runtime += f'#> Set General Parameters for Configuring the Simulation\n'
         cctm_runtime += f'set VRSN      = {cctm_vrsn}              #> Code Version - note this must be updated if using ISAM or DDM\n'
         cctm_runtime += f'set PROC      = mpi               #> serial or mpi\n'
@@ -295,8 +301,8 @@ class CMAQModel:
         cctm_runtime += f'setenv RUNID  {cctm_vrsn}_{self.compiler}{self.compiler_vrsn}_{self.appl}\n'
         cctm_runtime += f'#> Set Working, Input, and Output Directories\n'
         cctm_runtime += f'setenv WORKDIR {self.CCTM_SCRIPTS}    #> Working Directory. Where the runscript is.\n'
-        cctm_runtime += f'setenv OUTDIR  {self.CMAQ_DATA}/output_CCTM_$RUNID  #> Output Directory\n'
-        cctm_runtime += f'setenv INPDIR  {self.CMAQ_DATA}/{self.appl} #> Input Directory\n'
+        cctm_runtime += f'setenv OUTDIR  {self.CMAQ_DATA}/{self.appl}/output_CCTM_$RUNID  #> Output Directory\n'
+        cctm_runtime += f'setenv INPDIR  {self.CMAQ_DATA}/{self.appl}/input #> Input Directory\n'
         cctm_runtime += f'setenv GRIDDESC $INPDIR/GRIDDESC    #> grid description file\n'
         cctm_runtime += f'setenv GRID_NAME {self.grid_name}         #> check GRIDDESC file for GRID_NAME options\n'
         cctm_runtime += f'#> Keep or Delete Existing Output Files\n'
@@ -331,12 +337,34 @@ class CMAQModel:
             print(f'No {n_procs} processor setup has been specified. Use [8, 12, 16, 24, 32, or 48].')
             raise ValueError
         utils.write_to_template(run_cctm_path, cctm_proc, id='%PROC%')
+
+        # Write CCTM submission script
+        cctm_sub =  f'#!/bin/csh\n'
+        cctm_sub += f'\n'
+        cctm_sub += f'#SBATCH -J cctm_{self.appl}                  # Job name\n'
+        # cctm_sub += f'#SBATCH -o {self.CCTM_SCRIPTS}/out.cctm_{self.appl}              # Name of stdout output file\n'
+        cctm_sub += f'#SBATCH -o /dev/null              # Name of stdout output file\n'
+        # cctm_sub += f'#SBATCH -e {self.CCTM_SCRIPTS}/errors.cctm_{self.appl}           # Name of stderr output file\n'
+        cctm_sub += f'#SBATCH -e /dev/null           # Name of stderr output file\n'
+        cctm_sub += f'#SBATCH --ntasks={n_procs}             # Total number of tasks to be configured for.\n'
+        cctm_sub += f'#SBATCH --tasks-per-node={n_procs}     # sets number of tasks to run on each node.\n'
+        cctm_sub += f'#SBATCH --cpus-per-task=1       # sets number of cpus needed by each task (if task is "make -j3" number should be 3).\n'
+        cctm_sub += f'#SBATCH --get-user-env          # tells sbatch to retrieve the users login environment. \n'
+        cctm_sub += f'#SBATCH -t {run_hours}:00:00             # Run time (hh:mm:ss)\n'
+        cctm_sub += f'#SBATCH --mem=20000M            # memory required per node\n'
+        cctm_sub += f'#SBATCH --partition=default_cpu # Which queue it should run on.\n'
+        cctm_sub += f'\n'
+        cctm_sub += f'{self.CCTM_SCRIPTS}/run_cctm.csh >&! {self.CCTM_SCRIPTS}/cctm_{self.appl}.log\n'
+        utils.write_to_template(submit_cctm_path, cctm_sub, id='%ALL%')
+
+        if self.verbose:
+            print('Done writing CCTM scripts!\n')
         
         ## RUN CCTM
         if not setup_only:
             os.system(self.CMD_CCTM)
             # Sleep until the run_cctm_{self.appl}.log file exists
-            while not os.path.exists(f'{self.CCTM_SCRIPTS}/run_cctm_{self.appl}.log'): #!!!!!! THIS IS NOT ACTUALLY THE NAME OF THE LOG FILE
+            while not os.path.exists(f'{self.CCTM_SCRIPTS}/run_cctm_{self.appl}.log'):
                 time.sleep(1)
             # Begin CCTM simulation clock
             simstart = datetime.datetime.now()
@@ -348,11 +376,14 @@ class CMAQModel:
                 if cctm_sim == 'failed':
                     return False
                 else:
-                    time.sleep(2)
+                    time.sleep(60)
+                    print('Running ...')
+                    sys.stdout.flush()
                     cctm_sim = self.finish_check('cctm')
             elapsed = datetime.datetime.now() - simstart
             if self.verbose:
                 print(f'CCTM ran in: {utils.strfdelta(elapsed)}')
+                sys.stdout.flush()
         return True
 
     def finish_check(self, program):
@@ -366,25 +397,24 @@ class CMAQModel:
 
         """
         if program == 'mcip':
-            msg = utils.read_last(f'{self.MCIP_SCRIPTS}run_mcip_{self.appl}.log', n_lines=1)
+            msg = utils.read_last(f'{self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log', n_lines=1)
             complete = 'NORMAL TERMINATION' in msg
             # Not sure what the correct failure message should be!
             failed = False
         elif program == 'icon':
-            msg = utils.read_last(f'{self.ICON_SCRIPTS}run_icon_{self.appl}.log', n_lines=5)
+            msg = utils.read_last(f'{self.ICON_SCRIPTS}/run_icon_{self.appl}.log', n_lines=5)
             complete = '>>---->  Program  ICON completed successfully  <----<<' in msg
             # Not sure what the correct failure message should be!
             failed = False
         elif program == 'bcon':
-            msg = utils.read_last(f'{self.BCON_SCRIPTS}run_bcon_{self.appl}.log', n_lines=5)
+            msg = utils.read_last(f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}.log', n_lines=5)
             complete = '>>---->  Program  BCON completed successfully  <----<<' in msg
             # Not sure what the correct failure message should be!
             # failed = '-------------------------------------------' in msg
         elif program == 'cctm':
-            msg = utils.read_last(f'{self.MCIP_SCRIPTS}run_mcip_{self.appl}.log', n_lines=40)
+            msg = utils.read_last(f'{self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log', n_lines=40)
             complete = '|>---   PROGRAM COMPLETED SUCCESSFULLY   ---<|' in msg
-            # Not sure what the correct failure message should be!
-            # failed = '-------------------------------------------' in msg
+            failed = 'Runscript Detected an Error' in msg
         else:
             complete = False
             failed = False

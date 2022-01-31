@@ -67,3 +67,4 @@ def test_run_cctm():
     # Call the "run_icon" method in "setup_only" mode
     cmaq_sim.run_cctm(cctm_vrsn='v533', delete_existing_output='TRUE', new_sim='TRUE', tstep='010000', n_procs=16, setup_only=True)
     assert os.path.exists(f'{cmaq_sim.CCTM_SCRIPTS}/run_cctm.csh') == 1
+    assert os.path.exists(f'{cmaq_sim.CCTM_SCRIPTS}/submit_cctm.csh') == 1

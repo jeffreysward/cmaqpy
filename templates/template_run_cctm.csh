@@ -17,14 +17,14 @@ echo 'Start Model Run At ' `date`
 
 %SETUP%
 
- setenv LOGDIR  ${OUTDIR}/LOGS     #> Log Directory Location
- setenv NMLpath ${BLD}             #> Location of Namelists. Common places are: 
-                                   #>   ${WORKDIR} | ${CCTM_SRC}/MECHS/${MECH} | ${BLD}
-
 #> Set the build directory (this is where the CMAQ executable
 #> is located by default).
  set BLD       = ${CMAQ_HOME}/CCTM/scripts/BLD_CCTM_${VRSN}_${compilerString}
- set EXEC      = CCTM_${VRSN}.exe  
+ set EXEC      = CCTM_${VRSN}.exe 
+
+ setenv LOGDIR  ${OUTDIR}/LOGS     #> Log Directory Location
+ setenv NMLpath ${BLD}             #> Location of Namelists. Common places are: 
+                                   #>   ${WORKDIR} | ${CCTM_SRC}/MECHS/${MECH} | ${BLD} 
 
 #> Output Each line of Runscript to Log File
  if ( $CTM_DIAG_LVL != 0 ) set echo 
