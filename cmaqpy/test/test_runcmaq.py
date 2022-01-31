@@ -27,7 +27,6 @@ def test_run_mcip():
     """
     Tests the MCIP setup including the writing of the run script.
     """
-    print('Test print')
     # Create a CMAQModel object
     cmaq_sim = CMAQModel(start_datetime, end_datetime, appl, coord_name, grid_name, verbose=True)
     # Specify the meteorolocial files
@@ -38,12 +37,33 @@ def test_run_mcip():
 
 
 def test_run_icon():
-    pass
+    """
+    Tests the ICON setup and writes the run script.
+    """
+    # Create a CMAQModel object
+    cmaq_sim = CMAQModel(start_datetime, end_datetime, appl, coord_name, grid_name, verbose=True)
+    # Call the "run_icon" method in "setup_only" mode
+    cmaq_sim.run_icon(type='regrid', coarse_grid_name='32NE', cctm_pfx='CCTM_CONC_v53_', setup_only=True)
+    assert os.path.exists(f'{cmaq_sim.ICON_SCRIPTS}/run_icon.csh') == 1
 
 
 def test_run_bcon():
-    pass
+    """
+    Tests the BCON setup and writes the run script.
+    """
+    # Create a CMAQModel object
+    cmaq_sim = CMAQModel(start_datetime, end_datetime, appl, coord_name, grid_name, verbose=True)
+    # Call the "run_icon" method in "setup_only" mode
+    cmaq_sim.run_bcon(type='regrid', coarse_grid_name='32NE', cctm_pfx='CCTM_CONC_v53_', setup_only=True)
+    assert os.path.exists(f'{cmaq_sim.BCON_SCRIPTS}/run_bcon.csh') == 1
 
 
 def test_run_cctm():
-    pass
+    """
+    Tests the CCTM setup and writes the run script.
+    """
+    # Create a CMAQModel object
+    cmaq_sim = CMAQModel(start_datetime, end_datetime, appl, coord_name, grid_name, verbose=True)
+    # Call the "run_icon" method in "setup_only" mode
+    cmaq_sim.run_cctm(cctm_vrsn='v533', delete_existing_output='TRUE', new_sim='TRUE', tstep='010000', n_procs=16, setup_only=True)
+    assert os.path.exists(f'{cmaq_sim.CCTM_SCRIPTS}/run_cctm.csh') == 1
