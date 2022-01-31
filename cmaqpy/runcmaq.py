@@ -230,7 +230,7 @@ class CMAQModel:
         # Write input file info to the run script
         bcon_files =  f'    setenv SDATE           {self.start_datetime.strftime("%Y%j")}\n'
         bcon_files += f'    setenv STIME           {self.start_datetime.strftime("%H%M%S")}\n'
-        bcon_files += f'    setenv RUNLEN          {self.delt.strftime("%H%M%S")}\n'   
+        bcon_files += f'    setenv RUNLEN          {utils.strfdelta(self.delt, fmt="{H:02}{M:02}{S:02}")}\n'   
         
         bcon_files += f' if ( $BCON_TYPE == regrid ) then\n'
         bcon_files += f'     setenv CTM_CONC_1 {self.CMAQ_DATA}/{coarse_grid_name}/cctm/{cctm_pfx}{self.start_datetime.strftime("%Y%m%d")}.nc\n'
@@ -310,7 +310,7 @@ class CMAQModel:
         cctm_time += f'set END_DATE   = "{self.end_datetime.strftime("%Y-%m-%d")}"     #> ending date\n'
         cctm_time += f'#> Set Timestepping Parameters\n'
         cctm_time += f'set STTIME     = {self.start_datetime.strftime("%H%M%S")}            #> beginning GMT time (HHMMSS)\n'
-        cctm_time += f'set NSTEPS     = {self.delt.strftime("%H%M%S")}            #> time duration (HHMMSS) for this run\n'
+        cctm_time += f'set NSTEPS     = {utils.strfdelta(self.delt, fmt="{H:02}{M:02}{S:02}")}            #> time duration (HHMMSS) for this run\n'
         cctm_time += f'set TSTEP      = {tstep}            #> output time step interval (HHMMSS)\n'
         utils.write_to_template(run_cctm_path, cctm_time, id='%TIME%')
 
@@ -321,11 +321,11 @@ class CMAQModel:
             cctm_proc = '@ NPCOL  =  3; @ NPROW =  4'
         elif n_procs == 16:
             cctm_proc = '@ NPCOL  =  4; @ NPROW =  4'
-        if n_procs == 24:
+        elif n_procs == 24:
             cctm_proc = '@ NPCOL  =  4; @ NPROW =  6'
-        if n_procs == 32:
+        elif n_procs == 32:
             cctm_proc = '@ NPCOL  =  4; @ NPROW =  8'
-        if n_procs == 48:
+        elif n_procs == 48:
             cctm_proc = '@ NPCOL  =  6; @ NPROW =  8'
         else:
             print(f'No {n_procs} processor setup has been specified. Use [8, 12, 16, 24, 32, or 48].')
