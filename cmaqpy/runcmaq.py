@@ -364,7 +364,7 @@ class CMAQModel:
         if not setup_only:
             os.system(self.CMD_CCTM)
             # Sleep until the run_cctm_{self.appl}.log file exists
-            while not os.path.exists(f'{self.CCTM_SCRIPTS}/run_cctm_{self.appl}.log'):
+            while not os.path.exists(f'{self.CCTM_SCRIPTS}/cctm_{self.appl}.log'):
                 time.sleep(1)
             # Begin CCTM simulation clock
             simstart = datetime.datetime.now()
@@ -376,9 +376,7 @@ class CMAQModel:
                 if cctm_sim == 'failed':
                     return False
                 else:
-                    time.sleep(60)
-                    print('Running ...')
-                    sys.stdout.flush()
+                    time.sleep(2)
                     cctm_sim = self.finish_check('cctm')
             elapsed = datetime.datetime.now() - simstart
             if self.verbose:
