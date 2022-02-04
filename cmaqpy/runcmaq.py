@@ -98,14 +98,14 @@ class CMAQModel:
         ## RUN MCIP
         if not setup_only:
             os.system(self.CMD_MCIP)
-            # Sleep until the run_mcip_{self.appl}.log file exists
-            while not os.path.exists(f'{self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log'):
-                time.sleep(1)
             # Begin MCIP simulation clock
             simstart = datetime.datetime.now()
             if self.verbose:
                 print('Starting MCIP at: ' + str(simstart))
                 sys.stdout.flush()
+            # Sleep until the run_mcip_{self.appl}.log file exists
+            while not os.path.exists(f'{self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log'):
+                time.sleep(1)
             mcip_sim = self.finish_check('mcip')
             while mcip_sim != 'complete':
                 if mcip_sim == 'failed':
