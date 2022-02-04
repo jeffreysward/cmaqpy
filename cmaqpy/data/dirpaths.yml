@@ -4,5 +4,5 @@ directory_paths:
   CMAQ_HOME: '/home/jas983/models/cmaq/CMAQ_v5.3.3'
   CMAQ_DATA: '/home/jas983/models/cmaq/CMAQ_v5.3.3/data'
   DIR_TEMPLATES: '/share/mzhang/jas983/cmaq_data/CMAQ_v5.3.3/cmaqpy/templates'
-  InMetDir: '/share/mzhang/jas983/wrf_data/met4ene/wrfout/ARW/2018-01-01_8mp4lw2sw2lsm5pbl3cu'
+  InMetDir: '/share/mzhang/jas983/wrf_data/met4ene/wrfout/ARW/2016-08-05_8mp4lw2sw2lsm5pbl3cu'
   InGeoDir: '/share/mzhang/jas983/wrf_data/data/domain'

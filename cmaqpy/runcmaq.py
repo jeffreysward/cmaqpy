@@ -47,9 +47,9 @@ class CMAQModel:
         self.CMD_CP = 'cp %s %s'
         self.CMD_MV = 'mv %s %s'
         self.CMD_RM = 'rm %s'
-        self.CMD_MCIP = f'./run_mcip.csh >&! run_mcip_{self.appl}.log'
-        self.CMD_ICON = f'./run_icon.csh >&! run_icon_{self.appl}.log'
-        self.CMD_BCON = f'./run_bcon.csh >&! run_bcon_{self.appl}.log'
+        self.CMD_MCIP = f'{self.MCIP_SCRIPTS}/run_mcip.csh >& run_mcip_{self.appl}.log'
+        self.CMD_ICON = f'{self.ICON_SCRIPTS}/run_icon.csh >& run_icon_{self.appl}.log'
+        self.CMD_BCON = f'{self.BCON_SCRIPTS}/run_bcon.csh >& run_bcon_{self.appl}.log'
         self.CMD_CCTM = f'sbatch --requeue {self.CCTM_SCRIPTS}/submit_cctm.csh'
 
     def run_mcip(self, metfile_list=[], geo_file='geo_em.d01.nc', t_step=60, setup_only=False):
@@ -70,7 +70,7 @@ class CMAQModel:
         mcip_io += f'set DataPath   = {self.CMAQ_DATA}\n'
         mcip_io += f'set InMetDir   = {self.InMetDir}\n'
         mcip_io += f'set InGeoDir   = {self.InGeoDir}\n'
-        mcip_io += f'set OutDir     = $DataPath/$GridName/mcip\n'
+        mcip_io += f'set OutDir     = $DataPath/$APPL/mcip\n'
         mcip_io += f'set ProgDir    = $CMAQ_HOME/PREP/mcip/src\n'
         mcip_io += f'set WorkDir    = $OutDir\n'
         utils.write_to_template(run_mcip_path, mcip_io, id='%IO%')
