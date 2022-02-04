@@ -47,9 +47,9 @@ class CMAQModel:
         self.CMD_CP = 'cp %s %s'
         self.CMD_MV = 'mv %s %s'
         self.CMD_RM = 'rm %s'
-        self.CMD_MCIP = f'{self.MCIP_SCRIPTS}/run_mcip.csh >& run_mcip_{self.appl}.log'
-        self.CMD_ICON = f'{self.ICON_SCRIPTS}/run_icon.csh >& run_icon_{self.appl}.log'
-        self.CMD_BCON = f'{self.BCON_SCRIPTS}/run_bcon.csh >& run_bcon_{self.appl}.log'
+        self.CMD_MCIP = f'{self.MCIP_SCRIPTS}/run_mcip.csh >& {self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log'
+        self.CMD_ICON = f'{self.ICON_SCRIPTS}/run_icon.csh >& {self.MCIP_SCRIPTS}/run_icon_{self.appl}.log'
+        self.CMD_BCON = f'{self.BCON_SCRIPTS}/run_bcon.csh >& {self.MCIP_SCRIPTS}/run_bcon_{self.appl}.log'
         self.CMD_CCTM = f'sbatch --requeue {self.CCTM_SCRIPTS}/submit_cctm.csh'
 
     def run_mcip(self, metfile_list=[], geo_file='geo_em.d01.nc', t_step=60, setup_only=False):
@@ -79,9 +79,9 @@ class CMAQModel:
         mcip_met = f'set InMetFiles = ( ' 
         for ii, metfile in enumerate(metfile_list):
             if ii < len(metfile_list) - 1:
-                mcip_met += f'InMetDir/{metfile} \\\n'
+                mcip_met += f'$InMetDir/{metfile} \\\n'
             else:
-                mcip_met += f'InMetDir/{metfile} )\n'
+                mcip_met += f'$InMetDir/{metfile} )\n'
         mcip_met += f'set IfGeo      = "F"\n'
         mcip_met += f'set InGeoFile  = {self.InGeoDir}/{geo_file}\n'
         utils.write_to_template(run_mcip_path, mcip_met, id='%MET%')
@@ -397,8 +397,7 @@ class CMAQModel:
         if program == 'mcip':
             msg = utils.read_last(f'{self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log', n_lines=1)
             complete = 'NORMAL TERMINATION' in msg
-            # Not sure what the correct failure message should be!
-            failed = False
+            failed = 'Error running mcip' in msg
         elif program == 'icon':
             msg = utils.read_last(f'{self.ICON_SCRIPTS}/run_icon_{self.appl}.log', n_lines=5)
             complete = '>>---->  Program  ICON completed successfully  <----<<' in msg

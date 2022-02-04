@@ -1,11 +1,14 @@
 """
 This example shows how to process wrfout files with MCIP using the `CMAQModel` class.
+
+Note that MCIP will fail if your `start_datetime` is not AFTER the fist timestep of 
+your wrfout*.nc file.
 """
 
 from cmaqpy.runcmaq import CMAQModel
 
-start_datetime = 'August 05, 2016'
-end_datetime = 'August 16, 2016'
+start_datetime = 'August 05, 2016 01:00:00'  # second timestep in the wrfout file
+end_datetime = 'August 15, 2016 23:00:00'  # second to last timestep in the wrfout file
 appl = '2016_12OTC2'
 coord_name = 'LAM_40N97W'
 grid_name = '12OTC2'
