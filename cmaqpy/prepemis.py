@@ -44,7 +44,7 @@ def fmt_calc_hourly_base(base_file='calc_hourly_base.csv'):
     Format the calc_hourly_base.csv file output by the ERTAC EGU preprocessor.
     """
     # Read in the generator data previously preprocessed by ERTAC EGU tool
-    base_df = pd.read_csv(base_file, low_memory=False)
+    base_df = pd.read_csv(base_file)
     # Change op_hour to str
     base_df = base_df.astype({'op_hour': 'str'})
     # Change the orispl_code to a string
