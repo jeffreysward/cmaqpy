@@ -44,11 +44,31 @@ def fmt_calc_hourly_base(base_file='calc_hourly_base.csv'):
     Format the calc_hourly_base.csv file output by the ERTAC EGU preprocessor.
     """
     # Read in the generator data previously preprocessed by ERTAC EGU tool
-    base_df = pd.read_csv(base_file)
-    # Change op_hour to str
-    base_df = base_df.astype({'op_hour': 'str'})
+    base_df = pd.read_csv(base_file, dtype={'ertac_region': 'object',
+                                            'ertac_fuel_unit_type_bin': 'object',
+                                            'state': 'object',
+                                            'facility_name': 'object',
+                                            'orispl_code': 'int64',
+                                            'unitid': 'object',
+                                            'op_date': 'object',
+                                            'op_hour': 'str',
+                                            'op_time': 'float64',
+                                            'gload (MW-hr)': 'object',
+                                            'sload (1000 lbs)': 'float64',
+                                            'so2_mass (lbs)': 'object',
+                                            'so2_mass_measure_flg': 'object',
+                                            'so2_rate (lbs/mmBtu)': 'float64',
+                                            'so2_rate_measure_flg': 'object',
+                                            'nox_rate (lbs/mmBtu)': 'float64',
+                                            'nox_rate_measure_flg': 'object',
+                                            'nox_mass (lbs)': 'object',
+                                            'nox_mass_measure_flg': 'object',
+                                            'co2_mass (tons)': 'object',
+                                            'co2_mass_measure_flg': 'object',
+                                            'co2_rate (tons/mmBtu)': 'float64',
+                                            'co2_rate_measure_flg': 'object',
+                                            'heat_input (mmBtu)': 'float64'})
     # Change the orispl_code to a string
-    base_df = base_df.astype({'orispl_code': 'int'})
     base_df = base_df.astype({'orispl_code': 'str'})
     # Pad the string for formatting
     base_df['op_hour'] = base_df['op_hour'].str.zfill(2)
