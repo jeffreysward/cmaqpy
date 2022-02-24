@@ -89,19 +89,21 @@ def update_camd(in_emis_file='calc_hourly_base.csv', co2_file='pred_xg_co2.csv',
         # Extract the correct time window
         egu_df = egu_df.loc[base_df['datetime'].isin(ml_co2.columns[5:])]
         if len(egu_df) == 0:
-            print('Warning: this unit was not found in the CAMD data.')
-        
-        # Replace the CO2 emissions values
-        # NOTE: this is probably a dangerous way of doing this -- might be better to add the datetime as another index in the egu_df
-        egu_df['co2_mass (tons)'] = ml_co2.loc[idx, ml_co2.columns[5:]].values
-        # Replace the SO2 emissions values
-        egu_df['so2_mass (lbs)'] = ml_so2.loc[idx, ml_co2.columns[5:]].values
-        # Replace the NOx emissions values
-        egu_df['nox_mass (lbs)'] = ml_nox.loc[idx, ml_co2.columns[5:]].values
-        # Replace the load values
-        egu_df['gload (MW-hr)'] = ed_gen.loc[idx, ml_co2.columns[5:]].values
-        # Combine this new unit data back into the base_df
-        base_df.update(egu_df)
+            print('Warning: this unit was not found in the CAMD data... skipping')
+        else:
+            # Replace the CO2 emissions values
+            # NOTE: this is probably a dangerous way of doing this -- might be better to add the datetime as another index in the egu_df
+            egu_df['co2_mass (tons)'] = ml_co2.loc[idx, ml_co2.columns[5:]].values
+            # Replace the SO2 emissions values
+            egu_df['so2_mass (lbs)'] = ml_so2.loc[idx, ml_so2.columns[5:]].values
+            # Replace the NOx emissions values
+            egu_df['nox_mass (lbs)'] = ml_nox.loc[idx, ml_nox.columns[5:]].values
+            # Replace the load values
+            egu_df['gload (MW-hr)'] = ed_gen.loc[idx, ed_gen.columns[5:]].values
+            # Combine this new unit data back into the base_df
+            base_df.update(egu_df)
 
-    # Save the updated emissions to a new CSV
-    base_df.to_csv(out_emis_file)     
+    # Save the updated emissions to a new CSV 
+    # (after dropping the datetime column that we added)
+    base_df = base_df.drop(columns=['datetime'])
+    base_df.to_csv(out_emis_file, index=False) 
