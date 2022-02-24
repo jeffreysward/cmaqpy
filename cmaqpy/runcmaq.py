@@ -18,6 +18,8 @@ class CMAQModel:
         self.compiler = compiler
         self.compiler_vrsn = compiler_vrsn
         self.verbose = verbose
+        if self.verbose:
+            print(f'Application name: {self.appl}\nCoordinate name: {self.coord_name}\nGrid name: {self.grid_name}')
 
         # Format the forecast start/end and determine the total time.
         self.start_datetime = utils.format_date(start_datetime)
@@ -97,12 +99,12 @@ class CMAQModel:
 
         ## RUN MCIP
         if not setup_only:
-            os.system(self.CMD_MCIP)
             # Begin MCIP simulation clock
             simstart = datetime.datetime.now()
             if self.verbose:
                 print('Starting MCIP at: ' + str(simstart))
                 sys.stdout.flush()
+            os.system(self.CMD_MCIP)
             # Sleep until the run_mcip_{self.appl}.log file exists
             while not os.path.exists(f'{self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log'):
                 time.sleep(1)

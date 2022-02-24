@@ -194,7 +194,7 @@ set IOFORM = 1
 #     information in X0, Y0, NCOLS, and NROWS.
 #-----------------------------------------------------------------------
 
-set BTRIM = 0
+set BTRIM = -1
 
 #-----------------------------------------------------------------------
 # Define MCIP subset domain.  (Only used if BTRIM = -1.  Otherwise,
@@ -211,11 +211,15 @@ set BTRIM = 0
 #   NROWS:  Number of rows in output MCIP domain (excluding MCIP
 #           lateral boundaries).
 #-----------------------------------------------------------------------
+# For the 12OTC2 domain
+# "set X0 = 141" "set Y0  = 15" "set NCOLS = 273" "set NROWS = 246"
+# For the 4OTC2 domain
+# "set X0 = 87" "set Y0  = 9" "set NCOLS = 126" "set NROWS = 156"
 
-set X0    =  13
-set Y0    =  94
-set NCOLS =  89
-set NROWS = 104
+set X0    =  141
+set Y0    =  15
+set NCOLS =  273
+set NROWS = 246
 
 #-----------------------------------------------------------------------
 # Set coordinates for cell for diagnostic prints on output domain.
@@ -234,7 +238,7 @@ set LPRT_ROW = 0
 # from the setting of the namelist (toward the end of the script).
 #-----------------------------------------------------------------------
 
-set WRF_LC_REF_LAT = 41.5
+set WRF_LC_REF_LAT = 40.0  # Winston told me that this is how DEC set's this
 
 #=======================================================================
 #=======================================================================

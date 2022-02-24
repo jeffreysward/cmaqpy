@@ -2,6 +2,10 @@
 This example shows how to update the calc_hourly_base.csv emissions file 
 that is output from the ERTAC EGU preprocessor. This file hold the CAMD 
 CEMS data for all EGUs in the US (or a subregion if you have subsetted the file).
+
+Take more than for hours on a high-memory node to run this one -- I think because the
+dataset takes up so much memory... could defitiely improve this... so definitely run
+this via an interactive job and not on the head node.
 """
 
 from cmaqpy.prepemis import update_camd
