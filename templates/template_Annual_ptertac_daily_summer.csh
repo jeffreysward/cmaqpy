@@ -1,10 +1,19 @@
 #!/bin/csh -f
-#SBATCH --export=NONE
+#SBATCH -J ptertac_summer		# Job name
+#SBATCH -o /share/mzhang/jas983/emissions_data/nei_platform2016/v1/2016fh_16j/intermed/ptertac/logs/out_ptertac_summer.%j		# Name of stdout output file (%j expands to jobId)
+#SBATCH --nodes=1		# Total number of nodes requested 
+#SBATCH --ntasks=1		# Total number of tasks to be configured for. 
+#SBATCH --tasks-per-node=1	# sets number of tasks to run on each node. 
+#SBATCH --cpus-per-task=1	# sets number of cpus needed by each task (if task is "make -j3" number should be 3).
+#SBATCH --get-user-env		# tells sbatch to retrieve the users login environment. 
+#SBATCH -t 24:00:00		# Run time (hh:mm:ss) 
+#SBATCH --mem=100000M		# memory required per node
+#SBATCH --partition=default_cpu	# Which queue it should run on. 
 
 limit stacksize unlimited
+limit memoryuse unlimited
 
-#setenv SECTOR "ptegu"
-setenv SECTOR "ptertac_smkfix"
+setenv SECTOR "ptertac"
 
 if ($?SLURM_SUBMIT_DIR) then
   cd $SLURM_SUBMIT_DIR
@@ -88,11 +97,6 @@ setenv INVTABLE "${GE_DAT}/invtable_2014platform_nointegrate_07dec2018_v1.txt"
 setenv PELVCONFIG "${GE_DAT}/point/pelvconfig_seca_c3_22jul2010_v1.txt"
 setenv REPCONFIG_INV "${GE_DAT}/smkreport/repconfig/repconfig_point_inv_2016beta_07feb2019_v0.txt"
 setenv REPCONFIG_TEMP "${GE_DAT}/smkreport/repconfig/repconfig_point_temporal_2016beta_07feb2019_v0.txt"
-#setenv EMISINV_A "$CASEINPUTS/ptegu/egucems_2016b_POINT_20180612_22jul2019_v5.csv"
-#setenv EMISINV_B "$CASEINPUTS/ptegu/egunoncems_2016b_POINT_20180612_05aug2019_nf_v11.csv"
-#setenv EMISINV_B1 "$CASEINPUTS/ptegu/2016fh_proj_from_egunoncems_2016b_POINT_20180612_2016v1_calcyear2014_05aug2019_v0.csv"
-#setenv EMISINV_C "$CASEINPUTS/ptegu/nonconus_egu_2016b_POINT_20180612_28dec2018_v2.csv"
-#setenv EMISHOUR_MULTI_A "$CASEINPUTS/cem/HOUR_UNIT_2015_12_31dec_2016fd.txt"
 setenv EMISINV_A "${CASEINPUTS}/ptertac/ff10_future.csv"
 setenv EMISINV_B "${CASEINPUTS}/ptertac/2016fh_proj_from_egunoncems_2016version1_ERTAC_Platform_POINT_calcyear2014_27oct2019.csv"
 setenv EMISINV_C "${CASEINPUTS}/ptertac/egunoncems_2016version1_ERTAC_Platform_POINT_27oct2019.csv"

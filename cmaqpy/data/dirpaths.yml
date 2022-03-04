@@ -6,3 +6,4 @@ directory_paths:
   DIR_TEMPLATES: '/share/mzhang/jas983/cmaq_data/CMAQ_v5.3.3/cmaqpy/templates'
   InMetDir: '/share/mzhang/jas983/wrf_data/met4ene/wrfout/ARW/2016-08-05_8mp4lw2sw2lsm5pbl3cu'
   InGeoDir: '/share/mzhang/jas983/wrf_data/data/domain'
+  NEI_CASE: '/share/mzhang/jas983/emissions_data/nei_platform2016/v1/2016fh_16j'

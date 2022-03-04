@@ -216,10 +216,10 @@ set BTRIM = -1
 # For the 4OTC2 domain
 # "set X0 = 87" "set Y0  = 9" "set NCOLS = 126" "set NROWS = 156"
 
-set X0    =  141
-set Y0    =  15
-set NCOLS =  273
-set NROWS = 246
+set X0    =  87
+set Y0    =  9
+set NCOLS =  126
+set NROWS = 156
 
 #-----------------------------------------------------------------------
 # Set coordinates for cell for diagnostic prints on output domain.
