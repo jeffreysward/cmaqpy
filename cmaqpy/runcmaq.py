@@ -49,12 +49,12 @@ class CMAQModel:
         self.CMD_CP = 'cp %s %s'
         self.CMD_MV = 'mv %s %s'
         self.CMD_RM = 'rm %s'
-        self.CMD_MCIP = f'{self.MCIP_SCRIPTS}/run_mcip.csh >& {self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log'
+        self.CMD_MCIP = f'sbatch --requeue {self.MCIP_SCRIPTS}/run_mcip.csh'
         self.CMD_ICON = f'{self.ICON_SCRIPTS}/run_icon.csh >& {self.MCIP_SCRIPTS}/run_icon_{self.appl}.log'
         self.CMD_BCON = f'{self.BCON_SCRIPTS}/run_bcon.csh >& {self.MCIP_SCRIPTS}/run_bcon_{self.appl}.log'
         self.CMD_CCTM = f'sbatch --requeue {self.CCTM_SCRIPTS}/submit_cctm.csh'
 
-    def run_mcip(self, mcip_start_datetime=None, mcip_end_datetime=None, metfile_list=[], geo_file='geo_em.d01.nc', t_step=60, setup_only=False):
+    def run_mcip(self, mcip_start_datetime=None, mcip_end_datetime=None, metfile_list=[], geo_file='geo_em.d01.nc', t_step=60, run_hours=4, setup_only=False):
         """
         Setup and run MCIP, which formats meteorological files (e.g. wrfout*.nc) for CMAQ.
         """
@@ -63,6 +63,19 @@ class CMAQModel:
         run_mcip_path = f'{self.MCIP_SCRIPTS}/run_mcip.csh'
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_mcip.csh', run_mcip_path)
         os.system(cmd)
+
+        # Write Slurm info
+        mcip_slurm =  f'#SBATCH -J mcip_{self.appl}		# Job name'
+        mcip_slurm =+ f'#SBATCH -o {self.MCIP_SCRIPTS}/run_mcip_{self.appl}_%j.log'
+        mcip_slurm =+ f'#SBATCH --nodes=1		# Total number of nodes requested' 
+        mcip_slurm =+ f'#SBATCH --ntasks=1		# Total number of tasks to be configured for.' 
+        mcip_slurm =+ f'#SBATCH --tasks-per-node=1	# sets number of tasks to run on each node.' 
+        mcip_slurm =+ f'#SBATCH --cpus-per-task=1	# sets number of cpus needed by each task.'
+        mcip_slurm =+ f'#SBATCH --get-user-env		# tells sbatch to retrieve the users login environment.' 
+        mcip_slurm =+ f'#SBATCH -t {run_hours}:00:00		# Run time (hh:mm:ss)' 
+        mcip_slurm =+ f'#SBATCH --mem=20000M		# memory required per node'
+        mcip_slurm =+ f'#SBATCH --partition=default_cpu	# Which queue it should run on.'
+        utils.write_to_template(run_mcip_path, mcip_slurm, id='%SLURM%') 
 
         # Write IO info to the MCIP run script
         mcip_io =  f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
@@ -128,20 +141,30 @@ class CMAQModel:
                 print(f'MCIP ran in: {utils.strfdelta(elapsed)}')
         return True
 
-    def run_mcip_multiday(self, mcip_start_date, mcip_end_date, metfile_dir='./wrfout', geo_file='geo_em.d01.nc', t_step=60, setup_only=False):
+    def run_mcip_multiday(self, metfile_dir=None, metfile_list=[], geo_file='geo_em.d01.nc', t_step=60):
         """
         Run MCIP over multiple days. Per CMAQ convention, daily MCIP files contain
         25 hours each all the hours from the current day, and the first hour (00:00)
         from the following day. 
         """
-        # Determine the number of days
-
         # Loop over each day
+        success = True
+        for day_no in range(self.delt.days):
+            # Set the start datetime, end datetime, and metfile list for the day
+            mcip_start_datetime = self.start_datetime + datetime.timedelta(day_no)
+            mcip_end_datetime = self.start_datetime + datetime.timedelta(day_no + 1)
+            if metfile_dir is None:
+                # If all the met data is stored in the same file, pass that file in 
+                # using metfile_list and set metfile_dir=None
+                metfile_list = metfile_list
+            else:
+                # Eventually, can add scripting here that assumes there's a different
+                # wrfout file produced every day and they are all located in metfile_dir.
+                pass
 
-        # Set the start datetime, end datetime, and metfile list for the day
-
-        # run mcip for that day
-        self.run_mcip(self, mcip_start_datetime=None, mcip_end_datetime=None, metfile_list=[], geo_file=geo_file, t_step=t_step, setup_only=False)
+            # run mcip for that day
+            while success:
+                success = self.run_mcip(self, mcip_start_datetime=mcip_start_datetime, mcip_end_datetime=mcip_end_datetime, metfile_list=metfile_list, geo_file=geo_file, t_step=t_step, setup_only=False)  
         
 
     def run_icon(self, type='regrid', coarse_grid_name='coarse', cctm_pfx='CCTM_CONC_v53_', setup_only=False):

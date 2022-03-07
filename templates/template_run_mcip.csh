@@ -1,4 +1,6 @@
-#!/bin/csh -f 
+#!/bin/csh -f
+
+%SLURM%
 
 #------------------------------------------------------------------------------#
 #  The Community Multiscale Air Quality (CMAQ) system software is in           #

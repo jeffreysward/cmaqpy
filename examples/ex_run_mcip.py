@@ -29,6 +29,6 @@ elif appl == '2016_4OTC2':
     metfile_list = ['wrfout_d02_2016-08-05_00:00:00']
 # Call the "run_mcip" method 
 if appl == '2016_12OTC2':
-    cmaq_sim.run_mcip(metfile_list=metfile_list, geo_file='geo_em.d01.nc', t_step=60, setup_only=False)
+    cmaq_sim.run_mcip_multiday(metfile_dir=None, metfile_list=metfile_list, geo_file='geo_em.d01.nc', t_step=60)
 elif appl == '2016_4OTC2':
-    cmaq_sim.run_mcip(metfile_list=metfile_list, geo_file='geo_em.d02.nc', t_step=60, setup_only=False)
+    cmaq_sim.run_mcip_multiday(metfile_dir=None, metfile_list=metfile_list, geo_file='geo_em.d02.nc', t_step=60)
