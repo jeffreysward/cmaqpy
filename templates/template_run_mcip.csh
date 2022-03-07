@@ -452,8 +452,10 @@ $ProgDir/${PROG}.exe
 
 if ( $status == 0 ) then
   rm fort.*
+  mv $WorkDir/namelist.${PROG} $WorkDir/namelist.${PROG}.${APPL}
   exit 0
 else
   echo "Error running $PROG"
+  mv $WorkDir/namelist.${PROG} $WorkDir/namelist.${PROG}.${APPL}
   exit 1
 endif

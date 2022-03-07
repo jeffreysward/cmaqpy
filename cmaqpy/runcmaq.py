@@ -63,7 +63,8 @@ class CMAQModel:
         if mcip_end_datetime is None:
             mcip_end_datetime = self.end_datetime
         # Set an 'MCIP APPL,' which will control file names
-        self.mcip_appl = f'{self.appl}_{mcip_start_datetime.strftime("%y%m%d")}'
+        mcip_sdatestr = mcip_start_datetime.strftime("%y%m%d")
+        self.mcip_appl = f'{self.appl}_{mcip_sdatestr}'
         # Remove existing log file
         cmd = self.CMD_RM % (f'{self.MCIP_SCRIPTS}/run_mcip_{self.mcip_appl}.log')
         os.system(cmd)
@@ -88,13 +89,13 @@ class CMAQModel:
 
         # Write IO info to the MCIP run script
         mcip_io =  f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
-        mcip_io += f'set APPL       = {self.mcip_appl}\n'
+        mcip_io += f'set APPL       = {mcip_sdatestr}\n'
         mcip_io += f'set CoordName  = {self.coord_name}\n'
         mcip_io += f'set GridName   = {self.grid_name}\n'
         mcip_io += f'set DataPath   = {self.CMAQ_DATA}\n'
         mcip_io += f'set InMetDir   = {self.InMetDir}\n'
         mcip_io += f'set InGeoDir   = {self.InGeoDir}\n'
-        mcip_io += f'set OutDir     = $DataPath/$APPL/mcip\n'
+        mcip_io += f'set OutDir     = $DataPath/{self.appl}/mcip\n'
         mcip_io += f'set ProgDir    = $CMAQ_HOME/PREP/mcip/src\n'
         mcip_io += f'set WorkDir    = $OutDir\n'
         utils.write_to_template(run_mcip_path, mcip_io, id='%IO%')

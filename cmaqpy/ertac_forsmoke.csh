@@ -1,7 +1,7 @@
 #!/bin/tcsh
 
 #SBATCH -J ertac_fs		# Job name
-#SBATCH -o /home/jas983/models/ertac_egu/CONUS2016_S0/out_ertac_egu.%j		# Name of stdout output file (%j expands to jobId)
+#SBATCH -o /home/jas983/models/ertac_egu/CONUS2016_S0/out_ertac_fs.%j		# Name of stdout output file (%j expands to jobId)
 #SBATCH --nodes=1		# Total number of nodes requested 
 #SBATCH --ntasks=1		# Total number of tasks to be configured for. 
 #SBATCH --tasks-per-node=1	# sets number of tasks to run on each node. 
