@@ -12,5 +12,5 @@ grid_name = '2016_12SE1'
 
 # Create a CMAQModel object
 cmaq_sim = CMAQModel(start_datetime, end_datetime, appl, coord_name, grid_name, verbose=True)
-# Call the "run_icon" method
+# Call the "run_cctm" method
 cmaq_sim.run_cctm(cctm_vrsn='v533', delete_existing_output='TRUE', new_sim='TRUE', tstep='010000', n_procs=16, run_hours=24,setup_only=False)

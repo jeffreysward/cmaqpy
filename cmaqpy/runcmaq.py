@@ -54,7 +54,7 @@ class CMAQModel:
         self.CMD_BCON = f'{self.BCON_SCRIPTS}/run_bcon.csh >& {self.MCIP_SCRIPTS}/run_bcon_{self.appl}.log'
         self.CMD_CCTM = f'sbatch --requeue {self.CCTM_SCRIPTS}/submit_cctm.csh'
 
-    def run_mcip(self, metfile_list=[], geo_file='geo_em.d01.nc', t_step=60, setup_only=False):
+    def run_mcip(self, mcip_start_datetime=None, mcip_end_datetime=None, metfile_list=[], geo_file='geo_em.d01.nc', t_step=60, setup_only=False):
         """
         Setup and run MCIP, which formats meteorological files (e.g. wrfout*.nc) for CMAQ.
         """
@@ -89,8 +89,16 @@ class CMAQModel:
         utils.write_to_template(run_mcip_path, mcip_met, id='%MET%')
 
         # Write start/end info to MCIP run script
-        mcip_time =  f'set MCIP_START = {self.start_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}\n'  # [UTC]
-        mcip_time += f'set MCIP_END   = {self.end_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}\n'  # [UTC]
+        if mcip_start_datetime is None:
+            mcip_start_datetime = self.start_datetime
+        else:
+            mcip_start_datetime = utils.format_date(mcip_start_datetime)
+        if mcip_end_datetime is None:
+            mcip_end_datetime = self.end_datetime
+        else:
+            mcip_end_datetime = utils.format_date(mcip_end_datetime)
+        mcip_time =  f'set MCIP_START = {mcip_start_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}\n'  # [UTC]
+        mcip_time += f'set MCIP_END   = {mcip_end_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}\n'  # [UTC]
         mcip_time += f'set INTVL      = {t_step}\n' # [min]
         utils.write_to_template(run_mcip_path, mcip_time, id='%TIME%')
 
@@ -119,6 +127,22 @@ class CMAQModel:
             if self.verbose:
                 print(f'MCIP ran in: {utils.strfdelta(elapsed)}')
         return True
+
+    def run_mcip_multiday(self, mcip_start_date, mcip_end_date, metfile_dir='./wrfout', geo_file='geo_em.d01.nc', t_step=60, setup_only=False):
+        """
+        Run MCIP over multiple days. Per CMAQ convention, daily MCIP files contain
+        25 hours each all the hours from the current day, and the first hour (00:00)
+        from the following day. 
+        """
+        # Determine the number of days
+
+        # Loop over each day
+
+        # Set the start datetime, end datetime, and metfile list for the day
+
+        # run mcip for that day
+        self.run_mcip(self, mcip_start_datetime=None, mcip_end_datetime=None, metfile_list=[], geo_file=geo_file, t_step=t_step, setup_only=False)
+        
 
     def run_icon(self, type='regrid', coarse_grid_name='coarse', cctm_pfx='CCTM_CONC_v53_', setup_only=False):
         """
@@ -424,3 +448,4 @@ class CMAQModel:
             return 'complete'
         else:
             return 'running'
+            
