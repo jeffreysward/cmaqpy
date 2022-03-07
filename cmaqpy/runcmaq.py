@@ -49,7 +49,6 @@ class CMAQModel:
         self.CMD_CP = 'cp %s %s'
         self.CMD_MV = 'mv %s %s'
         self.CMD_RM = 'rm %s'
-        self.CMD_MCIP = f'sbatch --requeue {self.MCIP_SCRIPTS}/run_mcip.csh'
         self.CMD_ICON = f'{self.ICON_SCRIPTS}/run_icon.csh >& {self.MCIP_SCRIPTS}/run_icon_{self.appl}.log'
         self.CMD_BCON = f'{self.BCON_SCRIPTS}/run_bcon.csh >& {self.MCIP_SCRIPTS}/run_bcon_{self.appl}.log'
         self.CMD_CCTM = f'sbatch --requeue {self.CCTM_SCRIPTS}/submit_cctm.csh'
@@ -59,27 +58,37 @@ class CMAQModel:
         Setup and run MCIP, which formats meteorological files (e.g. wrfout*.nc) for CMAQ.
         """
         ## SETUP MCIP
+        if mcip_start_datetime is None:
+            mcip_start_datetime = self.start_datetime
+        if mcip_end_datetime is None:
+            mcip_end_datetime = self.end_datetime
+        # Set an 'MCIP APPL,' which will control file names
+        self.mcip_appl = f'{self.appl}_{mcip_start_datetime.strftime("%y%m%d")}'
+        # Remove existing log file
+        cmd = self.CMD_RM % (f'{self.MCIP_SCRIPTS}/run_mcip_{self.mcip_appl}.log')
+        os.system(cmd)
+        
         # Copy the template MCIP run script to the scripts directory
-        run_mcip_path = f'{self.MCIP_SCRIPTS}/run_mcip.csh'
+        run_mcip_path = f'{self.MCIP_SCRIPTS}/run_mcip_{self.mcip_appl}.csh'
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_mcip.csh', run_mcip_path)
         os.system(cmd)
 
         # Write Slurm info
-        mcip_slurm =  f'#SBATCH -J mcip_{self.appl}		# Job name'
-        mcip_slurm =+ f'#SBATCH -o {self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log'
-        mcip_slurm =+ f'#SBATCH --nodes=1		# Total number of nodes requested' 
-        mcip_slurm =+ f'#SBATCH --ntasks=1		# Total number of tasks to be configured for.' 
-        mcip_slurm =+ f'#SBATCH --tasks-per-node=1	# sets number of tasks to run on each node.' 
-        mcip_slurm =+ f'#SBATCH --cpus-per-task=1	# sets number of cpus needed by each task.'
-        mcip_slurm =+ f'#SBATCH --get-user-env		# tells sbatch to retrieve the users login environment.' 
-        mcip_slurm =+ f'#SBATCH -t {run_hours}:00:00		# Run time (hh:mm:ss)' 
-        mcip_slurm =+ f'#SBATCH --mem=20000M		# memory required per node'
-        mcip_slurm =+ f'#SBATCH --partition=default_cpu	# Which queue it should run on.'
+        mcip_slurm =  f'#SBATCH -J mcip_{self.appl}		# Job name\n'
+        mcip_slurm += f'#SBATCH -o {self.MCIP_SCRIPTS}/run_mcip_{self.mcip_appl}.log\n'
+        mcip_slurm += f'#SBATCH --nodes=1		# Total number of nodes requested\n' 
+        mcip_slurm += f'#SBATCH --ntasks=1		# Total number of tasks to be configured for.\n' 
+        mcip_slurm += f'#SBATCH --tasks-per-node=1	# sets number of tasks to run on each node.\n' 
+        mcip_slurm += f'#SBATCH --cpus-per-task=1	# sets number of cpus needed by each task.\n'
+        mcip_slurm += f'#SBATCH --get-user-env		# tells sbatch to retrieve the users login environment.\n' 
+        mcip_slurm += f'#SBATCH -t {run_hours}:00:00		# Run time (hh:mm:ss)\n' 
+        mcip_slurm += f'#SBATCH --mem=20000M		# memory required per node\n'
+        mcip_slurm += f'#SBATCH --partition=default_cpu	# Which queue it should run on.\n'
         utils.write_to_template(run_mcip_path, mcip_slurm, id='%SLURM%') 
 
         # Write IO info to the MCIP run script
         mcip_io =  f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
-        mcip_io += f'set APPL       = {self.appl}\n'
+        mcip_io += f'set APPL       = {self.mcip_appl}\n'
         mcip_io += f'set CoordName  = {self.coord_name}\n'
         mcip_io += f'set GridName   = {self.grid_name}\n'
         mcip_io += f'set DataPath   = {self.CMAQ_DATA}\n'
@@ -101,15 +110,7 @@ class CMAQModel:
         mcip_met += f'set InGeoFile  = {self.InGeoDir}/{geo_file}\n'
         utils.write_to_template(run_mcip_path, mcip_met, id='%MET%')
 
-        # Write start/end info to MCIP run script
-        if mcip_start_datetime is None:
-            mcip_start_datetime = self.start_datetime
-        else:
-            mcip_start_datetime = utils.format_date(mcip_start_datetime)
-        if mcip_end_datetime is None:
-            mcip_end_datetime = self.end_datetime
-        else:
-            mcip_end_datetime = utils.format_date(mcip_end_datetime)
+        # Write start/end info to MCIP run script   
         mcip_time =  f'set MCIP_START = {mcip_start_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}\n'  # [UTC]
         mcip_time += f'set MCIP_END   = {mcip_end_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}\n'  # [UTC]
         mcip_time += f'set INTVL      = {t_step}\n' # [min]
@@ -125,9 +126,9 @@ class CMAQModel:
             if self.verbose:
                 print('Starting MCIP at: ' + str(simstart))
                 sys.stdout.flush()
-            os.system(self.CMD_MCIP)
+            os.system(f'sbatch --requeue {self.MCIP_SCRIPTS}/run_mcip_{self.mcip_appl}.csh')
             # Sleep until the run_mcip_{self.appl}.log file exists
-            while not os.path.exists(f'{self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log'):
+            while not os.path.exists(f'{self.MCIP_SCRIPTS}/run_mcip_{self.mcip_appl}.log'):
                 time.sleep(1)
             mcip_sim = self.finish_check('mcip')
             while mcip_sim != 'complete':
@@ -148,11 +149,13 @@ class CMAQModel:
         from the following day. 
         """
         # Loop over each day
-        success = True
         for day_no in range(self.delt.days):
+            success = False
             # Set the start datetime, end datetime, and metfile list for the day
             mcip_start_datetime = self.start_datetime + datetime.timedelta(day_no)
             mcip_end_datetime = self.start_datetime + datetime.timedelta(day_no + 1)
+            if self.verbose:
+                print(f'Working on MCIP for {mcip_start_datetime}')
             if metfile_dir is None:
                 # If all the met data is stored in the same file, pass that file in 
                 # using metfile_list and set metfile_dir=None
@@ -163,8 +166,7 @@ class CMAQModel:
                 pass
 
             # run mcip for that day
-            while success:
-                success = self.run_mcip(self, mcip_start_datetime=mcip_start_datetime, mcip_end_datetime=mcip_end_datetime, metfile_list=metfile_list, geo_file=geo_file, t_step=t_step, setup_only=False)  
+            self.run_mcip(mcip_start_datetime=mcip_start_datetime, mcip_end_datetime=mcip_end_datetime, metfile_list=metfile_list, geo_file=geo_file, t_step=t_step, setup_only=False) 
         
 
     def run_icon(self, type='regrid', coarse_grid_name='coarse', cctm_pfx='CCTM_CONC_v53_', setup_only=False):
@@ -444,7 +446,7 @@ class CMAQModel:
 
         """
         if program == 'mcip':
-            msg = utils.read_last(f'{self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log', n_lines=1)
+            msg = utils.read_last(f'{self.MCIP_SCRIPTS}/run_mcip_{self.mcip_appl}.log', n_lines=1)
             complete = 'NORMAL TERMINATION' in msg
             failed = 'Error running mcip' in msg
         elif program == 'icon':
@@ -458,7 +460,7 @@ class CMAQModel:
             # Not sure what the correct failure message should be!
             # failed = '-------------------------------------------' in msg
         elif program == 'cctm':
-            msg = utils.read_last(f'{self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log', n_lines=40)
+            msg = utils.read_last(f'{self.CCTM_SCRIPTS}/run_cctm_{self.appl}.log', n_lines=40)
             complete = '|>---   PROGRAM COMPLETED SUCCESSFULLY   ---<|' in msg
             failed = 'Runscript Detected an Error' in msg
         else:
