@@ -66,7 +66,7 @@ class CMAQModel:
 
         # Write Slurm info
         mcip_slurm =  f'#SBATCH -J mcip_{self.appl}		# Job name'
-        mcip_slurm =+ f'#SBATCH -o {self.MCIP_SCRIPTS}/run_mcip_{self.appl}_%j.log'
+        mcip_slurm =+ f'#SBATCH -o {self.MCIP_SCRIPTS}/run_mcip_{self.appl}.log'
         mcip_slurm =+ f'#SBATCH --nodes=1		# Total number of nodes requested' 
         mcip_slurm =+ f'#SBATCH --ntasks=1		# Total number of tasks to be configured for.' 
         mcip_slurm =+ f'#SBATCH --tasks-per-node=1	# sets number of tasks to run on each node.' 
