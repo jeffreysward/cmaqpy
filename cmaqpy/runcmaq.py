@@ -32,15 +32,25 @@ class CMAQModel:
         # Set working and WRF model directory names
         dirs = fetch_yaml(setup_yaml)
         dirpaths = dirs.get('directory_paths')
+        filepaths = dirs.get('file_paths')
         self.CMAQ_HOME = dirpaths.get('CMAQ_HOME')
         self.MCIP_SCRIPTS = f'{self.CMAQ_HOME}/PREP/mcip/scripts'
         self.ICON_SCRIPTS = f'{self.CMAQ_HOME}/PREP/icon/scripts'
         self.BCON_SCRIPTS = f'{self.CMAQ_HOME}/PREP/bcon/scripts'
         self.CCTM_SCRIPTS = f'{self.CMAQ_HOME}/CCTM/scripts'
         self.CMAQ_DATA = dirpaths.get('CMAQ_DATA')
+        self.CMAQ_INPDIR = f'{self.CMAQ_DATA}/{self.appl}/input'
+        self.CMAQ_BC = dirpaths.get('CMAQ_BC')
+        self.EMIS_GRIDDED = dirpaths.get('EMIS_GRIDDED')
+        self.EMIS_RWC = dirpaths.get('EMIS_RWC')
+        self.EMIS_IN_PT = dirpaths.get('EMIS_IN_PT')
+        self.EMIS_LAND = dirpaths.get('EMIS_LAND')
         self.DIR_TEMPLATES = dirpaths.get('DIR_TEMPLATES')
         self.InMetDir = dirpaths.get('InMetDir')
         self.InGeoDir = dirpaths.get('InGeoDir')
+
+        # Define the locations for CMAQ inputs
+        self.GRIDDESC = filepaths.get('GRIDDESC')
 
         # Define the names of the CMAQ output files
 
@@ -321,6 +331,45 @@ class CMAQModel:
                 print(f'BCON ran in: {utils.strfdelta(elapsed)}')
         return True
 
+    def setup_inpdir(self):
+        """
+        Links all the necessary files to the locations in INPDIR where CCTM expects to find them. 
+        """
+        # Check to see if the input directory exists. If not, create it.
+        if not os.path.exists(self.CMAQ_INPDIR):
+            os.makedirs(self.CMAQ_INPDIR, 0o755)
+        # Make a list of the start dates for date-specific inputs
+        start_datetimes_lst = [single_date for single_date in (self.start_datetime + datetime.timedelta(n) for n in range(self.delt.days))]
+        # Link the GRIDDESC to $INPDIR
+        cmd = self.CMD_LN % (self.GRIDDESC, f'{self.CMAQ_INPDIR}/')
+        # Link Boundary and Initial Conditions to $INPDIR/icbc
+        icbc_dir = f'{self.CMAQ_INPDIR}/icbc'
+        if not os.path.exists(icbc_dir):
+            os.makedirs(icbc_dir, 0o755)
+        for date in start_datetimes_lst:
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.CMAQ_BC}/*{date.strftime("%y%m%d")}', f'{icbc_dir}/')
+        #### NOTE: I havent included any initial conditions here yet because 
+        #### I need to check which file CCTM is looking for when ititializing from a previous simulation
+        # Link gridded emissions to $INPDIR/emis/gridded_area/gridded
+        gridded_dir = f'{self.CMAQ_INPDIR}/emis/gridded_area/gridded'
+        if not os.path.exists(gridded_dir):
+            os.makedirs(gridded_dir, 0o755)
+        for date in start_datetimes_lst:
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.EMIS_GRIDDED}/emis_mole_all_20*{date.strftime("%y%m%d")}*', f'{gridded_dir}/')
+        # Link residential wood combustion to $INPDIR/emis/gridded_area/rwc
+        rwc_dir = f'{self.CMAQ_INPDIR}/emis/gridded_area/rwc'
+        if not os.path.exists(rwc_dir):
+            os.makedirs(rwc_dir, 0o755)
+        for date in start_datetimes_lst:
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.EMIS_GRIDDED}/emis_mole_all_20*{date.strftime("%y%m%d")}*', f'{rwc_dir}/')
+        # Link point source emissions to $INPDIR/emis/inln_point
+        pt_dir = f'{self.CMAQ_INPDIR}/emis/inln_point'
+        if not os.path.exists(pt_dir):
+            os.makedirs(pt_dir, 0o755)
+        cmd = cmd + '; ' + self.CMD_LN % (,)
+        os.system(cmd)
+        
+    
     def run_cctm(self, cctm_vrsn='v533', delete_existing_output='TRUE', new_sim='TRUE', tstep='010000', n_procs=16, run_hours=24, setup_only=False):
         """
         Setup and run CCTM, CMAQ's chemical transport model.
@@ -354,7 +403,7 @@ class CMAQModel:
         cctm_runtime += f'#> Set Working, Input, and Output Directories\n'
         cctm_runtime += f'setenv WORKDIR {self.CCTM_SCRIPTS}    #> Working Directory. Where the runscript is.\n'
         cctm_runtime += f'setenv OUTDIR  {self.CMAQ_DATA}/{self.appl}/output_CCTM_$RUNID  #> Output Directory\n'
-        cctm_runtime += f'setenv INPDIR  {self.CMAQ_DATA}/{self.appl}/input #> Input Directory\n'
+        cctm_runtime += f'setenv INPDIR  {self.CMAQ_INPDIR} #> Input Directory\n'
         cctm_runtime += f'setenv GRIDDESC $INPDIR/GRIDDESC    #> grid description file\n'
         cctm_runtime += f'setenv GRID_NAME {self.grid_name}         #> check GRIDDESC file for GRID_NAME options\n'
         cctm_runtime += f'#> Keep or Delete Existing Output Files\n'
