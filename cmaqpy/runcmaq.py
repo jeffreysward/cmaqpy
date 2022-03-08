@@ -342,9 +342,9 @@ class CMAQModel:
         """
         Links all the necessary files to the locations in INPDIR where CCTM expects to find them. 
         """
-        # Check to see if the input directory exists. If not, create it.
-        if not os.path.exists(self.CCTM_INPDIR):
-            os.makedirs(self.CCTM_INPDIR, 0o755)
+        # Remove the existing input directory if it already exists and remake it
+        utils.remove_dir(self.CCTM_INPDIR)
+        utils.make_dirs(self.CCTM_INPDIR)
 
         # Make a list of the start dates for date-specific inputs
         start_datetimes_lst = [single_date for single_date in (self.start_datetime + datetime.timedelta(n) for n in range(self.delt.days))]
@@ -353,28 +353,25 @@ class CMAQModel:
         cmd = self.CMD_LN % (self.GRIDDESC, f'{self.CCTM_INPDIR}/')
 
         # Link Boundary and Initial Conditions to $INPDIR/icbc
-        if not os.path.exists(self.ICBC):
-            os.makedirs(self.ICBC, 0o755)
+        utils.make_dirs(self.ICBC)
         for date in start_datetimes_lst:
             cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_BC}/*{date.strftime("%y%m%d")}', f'{self.ICBC}/')
         #### NOTE: I havent included any initial conditions here yet because 
         #### I need to check which file CCTM is looking for when ititializing from a previous simulation
 
         # Link gridded emissions to $INPDIR/emis/gridded_area/gridded
-        if not os.path.exists(self.CCTM_GRIDDED):
-            os.makedirs(self.CCTM_GRIDDED, 0o755)
+        utils.make_dirs(self.CCTM_GRIDDED)
         for date in start_datetimes_lst:
             cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_GRIDDED}/emis_mole_all_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_GRIDDED}/')
 
         # Link residential wood combustion to $INPDIR/emis/gridded_area/rwc
-        if not os.path.exists(self.CCTM_RWC):
-            os.makedirs(self.CCTM_RWC, 0o755)
+        utils.make_dirs(self.CCTM_RWC)
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_RWC}/emis_mole_all_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_RWC}/')
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_RWC}/emis_mole_rwc_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_RWC}/')
 
-        # Link point source emissions to $INPDIR/emis/inln_point and the associated stack groups to $INPDIR/emis/inln_point/stack_groups
-        if not os.path.exists(f'{self.CCTM_PT}/stack_groups'):
-            os.makedirs(f'{self.CCTM_PT}/stack_groups', 0o755)
+        # Link point source emissions to $INPDIR/emis/inln_point 
+        # and the associated stack groups to $INPDIR/emis/inln_point/stack_groups
+        utils.make_dirs(f'{self.CCTM_PT}/stack_groups')
         # Link the ptnonertac sector
         for date in start_datetimes_lst:
             cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptnonertac_hourly/inln_mole_ptnonertac_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
@@ -413,9 +410,8 @@ class CMAQModel:
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/cmv_c1c2_12/stack_groups_cmv_c1c2_12_*', f'{self.CCTM_PT}/stack_groups/')
 
         # Link files for emissions scaling and sea spray to $INPDIR/land
-        if not os.path.exists(f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic'):
-            os.makedirs(f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic', 0o755)
-        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km*', f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic/')
+        utils.make_dirs(f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic')
+        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_time20*{date.strftime("%y%m%d")}*', f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic/')
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/12US1_surf.12otc2.ncf', f'{self.CCTM_LAND}/')
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/beld41_feb2017_waterfix_envcan_12US2.12OTC2.ncf', f'{self.CCTM_LAND}/')
         os.system(cmd)

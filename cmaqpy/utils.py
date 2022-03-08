@@ -5,7 +5,9 @@ Known Issues/Wishlist:
 
 """
 import datetime
+import os
 import string
+from shutil import rmtree
 
 
 def format_date(in_date):
@@ -137,3 +139,28 @@ def read_last(file_name, n_lines=1):
     except IndexError:
         last_lines = 'IndexError in read_last_line: no last line appears to exist in this file.'
     return last_lines
+
+
+def remove_dir(directory, verbose=False):
+    """
+    This function utilized an exception clause to delete a directory.
+    :param directory: string
+        complete path to the directory to be removed.
+    :param verbose: boolean (default=False)
+        determining whether or not to print lots of model information to the screen.
+    """
+    try:
+        rmtree(directory)
+    except OSError as e:
+        if verbose:
+            print(f"OSError in remove_dir: {e.filename} - {e.strerror}.")
+
+
+def make_dirs(directory):
+    """
+    Checks if a directory exists and creates it if it doesn't.
+    :param directory: string
+        complete path to the directory to be created. 
+    """
+    if not os.path.exists(directory):
+        os.makedirs(directory, 0o755)
