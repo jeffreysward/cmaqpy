@@ -39,12 +39,18 @@ class CMAQModel:
         self.BCON_SCRIPTS = f'{self.CMAQ_HOME}/PREP/bcon/scripts'
         self.CCTM_SCRIPTS = f'{self.CMAQ_HOME}/CCTM/scripts'
         self.CMAQ_DATA = dirpaths.get('CMAQ_DATA')
-        self.CMAQ_INPDIR = f'{self.CMAQ_DATA}/{self.appl}/input'
-        self.CMAQ_BC = dirpaths.get('CMAQ_BC')
-        self.EMIS_GRIDDED = dirpaths.get('EMIS_GRIDDED')
-        self.EMIS_RWC = dirpaths.get('EMIS_RWC')
-        self.EMIS_IN_PT = dirpaths.get('EMIS_IN_PT')
-        self.EMIS_LAND = dirpaths.get('EMIS_LAND')
+        self.MCIP_OUT = f'{self.CMAQ_DATA}/{self.appl}/mcip'
+        self.CCTM_INPDIR = f'{self.CMAQ_DATA}/{self.appl}/input'
+        self.ICBC = f'{self.CCTM_INPDIR}/icbc'
+        self.CCTM_GRIDDED = f'{self.CCTM_INPDIR}/emis/gridded_area/gridded'
+        self.CCTM_RWC = f'{self.CCTM_INPDIR}/emis/gridded_area/rwc'
+        self.CCTM_PT = f'{self.CCTM_INPDIR}/emis/inln_point'
+        self.LOC_BC = dirpaths.get('LOC_BC')
+        self.LOC_GRIDDED = dirpaths.get('LOC_GRIDDED')
+        self.LOC_RWC = dirpaths.get('LOC_RWC')
+        self.LOC_IN_PT = dirpaths.get('LOC_IN_PT')
+        self.LOC_ERTAC = dirpaths.get('LOC_ERTAC')
+        self.LOC_LAND = dirpaths.get('LOC_LAND')
         self.DIR_TEMPLATES = dirpaths.get('DIR_TEMPLATES')
         self.InMetDir = dirpaths.get('InMetDir')
         self.InGeoDir = dirpaths.get('InGeoDir')
@@ -105,7 +111,7 @@ class CMAQModel:
         mcip_io += f'set DataPath   = {self.CMAQ_DATA}\n'
         mcip_io += f'set InMetDir   = {self.InMetDir}\n'
         mcip_io += f'set InGeoDir   = {self.InGeoDir}\n'
-        mcip_io += f'set OutDir     = $DataPath/{self.appl}/mcip\n'
+        mcip_io += f'set OutDir     = {self.MCIP_OUT}\n'
         mcip_io += f'set ProgDir    = $CMAQ_HOME/PREP/mcip/src\n'
         mcip_io += f'set WorkDir    = $OutDir\n'
         utils.write_to_template(run_mcip_path, mcip_io, id='%IO%')
@@ -336,37 +342,74 @@ class CMAQModel:
         Links all the necessary files to the locations in INPDIR where CCTM expects to find them. 
         """
         # Check to see if the input directory exists. If not, create it.
-        if not os.path.exists(self.CMAQ_INPDIR):
-            os.makedirs(self.CMAQ_INPDIR, 0o755)
+        if not os.path.exists(self.CCTM_INPDIR):
+            os.makedirs(self.CCTM_INPDIR, 0o755)
+
         # Make a list of the start dates for date-specific inputs
         start_datetimes_lst = [single_date for single_date in (self.start_datetime + datetime.timedelta(n) for n in range(self.delt.days))]
+
         # Link the GRIDDESC to $INPDIR
-        cmd = self.CMD_LN % (self.GRIDDESC, f'{self.CMAQ_INPDIR}/')
+        cmd = self.CMD_LN % (self.GRIDDESC, f'{self.CCTM_INPDIR}/')
+
         # Link Boundary and Initial Conditions to $INPDIR/icbc
-        icbc_dir = f'{self.CMAQ_INPDIR}/icbc'
-        if not os.path.exists(icbc_dir):
-            os.makedirs(icbc_dir, 0o755)
+        if not os.path.exists(self.ICBC):
+            os.makedirs(self.ICBC, 0o755)
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.CMAQ_BC}/*{date.strftime("%y%m%d")}', f'{icbc_dir}/')
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_BC}/*{date.strftime("%y%m%d")}', f'{self.ICBC}/')
         #### NOTE: I havent included any initial conditions here yet because 
         #### I need to check which file CCTM is looking for when ititializing from a previous simulation
+
         # Link gridded emissions to $INPDIR/emis/gridded_area/gridded
-        gridded_dir = f'{self.CMAQ_INPDIR}/emis/gridded_area/gridded'
-        if not os.path.exists(gridded_dir):
-            os.makedirs(gridded_dir, 0o755)
+        if not os.path.exists(self.CCTM_GRIDDED):
+            os.makedirs(self.CCTM_GRIDDED, 0o755)
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.EMIS_GRIDDED}/emis_mole_all_20*{date.strftime("%y%m%d")}*', f'{gridded_dir}/')
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_GRIDDED}/emis_mole_all_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_GRIDDED}/')
+
         # Link residential wood combustion to $INPDIR/emis/gridded_area/rwc
-        rwc_dir = f'{self.CMAQ_INPDIR}/emis/gridded_area/rwc'
-        if not os.path.exists(rwc_dir):
-            os.makedirs(rwc_dir, 0o755)
+        if not os.path.exists(self.CCTM_RWC):
+            os.makedirs(self.CCTM_RWC, 0o755)
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.EMIS_GRIDDED}/emis_mole_all_20*{date.strftime("%y%m%d")}*', f'{rwc_dir}/')
-        # Link point source emissions to $INPDIR/emis/inln_point
-        pt_dir = f'{self.CMAQ_INPDIR}/emis/inln_point'
-        if not os.path.exists(pt_dir):
-            os.makedirs(pt_dir, 0o755)
-        cmd = cmd + '; ' + self.CMD_LN % (,)
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_RWC}/emis_mole_all_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_RWC}/')
+
+        # Link point source emissions to $INPDIR/emis/inln_point and the associated stack groups to $INPDIR/emis/inln_point/stack_groups
+        if not os.path.exists(f'{self.CCTM_PT}/stack_groups'):
+            os.makedirs(f'{self.CCTM_PT}/stack_groups', 0o755)
+        # Link the ptnonertac sector
+        for date in start_datetimes_lst:
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptnonertac_hourly/inln_mole_ptnonertac_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
+        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptnonertac_hourly/stack_groups_ptnonertac_*', f'{self.CCTM_PT}/stack_groups/')
+        # Link the ptertac sector
+        for date in start_datetimes_lst:
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_ERTAC}/inln_mole_ptertac_smkfix_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
+        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_ERTAC}/stack_groups_ptertac_*', f'{self.CCTM_PT}/stack_groups/')
+        # Link the othpt sector
+        for date in start_datetimes_lst:
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/othpt/inln_mole_othpt_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
+        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/othpt/stack_groups_othpt_*', f'{self.CCTM_PT}/stack_groups/')
+        # Link the ptagfire sector
+        for date in start_datetimes_lst:
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptagfire/inln_mole_ptagfire_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptagfire/stack_groups_ptagfire_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/stack_groups/')
+        # Link the ptfire sector
+        for date in start_datetimes_lst:
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptfire/inln_mole_ptfire_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptfire/stack_groups_ptfire_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/stack_groups/')
+        # Link the ptfire_othna sector
+        for date in start_datetimes_lst:
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptfire_othna/inln_mole_ptfire_othna_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptfire_othna/stack_groups_ptfire_othna_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/stack_groups/')
+        # Link the pt_oilgas sector
+        for date in start_datetimes_lst:
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/pt_oilgas/inln_mole_pt_oilgas_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
+        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/pt_oilgas/stack_groups_pt_oilgas_*', f'{self.CCTM_PT}/stack_groups/')
+        # Link the cmv_c3_12 sector
+        for date in start_datetimes_lst:
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/cmv_c3_12/inln_mole_cmv_c3_12_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
+        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/cmv_c3_12/stack_groups_cmv_c3_12_*', f'{self.CCTM_PT}/stack_groups/')
+        # Link the cmv_c1c2_12 sector
+        for date in start_datetimes_lst:
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/cmv_c1c2_12/inln_mole_cmv_c1c2_12_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
+        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/cmv_c1c2_12/stack_groups_cmv_c1c2_12_*', f'{self.CCTM_PT}/stack_groups/')
         os.system(cmd)
         
     
@@ -395,17 +438,17 @@ class CMAQModel:
         cctm_runtime += f'set VRSN      = {cctm_vrsn}              #> Code Version - note this must be updated if using ISAM or DDM\n'
         cctm_runtime += f'set PROC      = mpi               #> serial or mpi\n'
         cctm_runtime += f'set MECH      = {self.chem_mech}      #> Mechanism ID\n'
-        cctm_runtime += f'set APPL      = {self.appl}  #> Application Name (e.g. Gridname)\n'
+        cctm_runtime += f'set APPL      = {self.appl}  #> Application Name (e.g. Gridname)\n\n'
         cctm_runtime += f'#> Define RUNID as any combination of parameters above or others. By default,\n'
         cctm_runtime += f'#> this information will be collected into this one string, $RUNID, for easy\n'
         cctm_runtime += f'#> referencing in output binaries and log files as well as in other scripts.\n'
-        cctm_runtime += f'setenv RUNID  {cctm_vrsn}_{self.compiler}{self.compiler_vrsn}_{self.appl}\n'
+        cctm_runtime += f'setenv RUNID  {cctm_vrsn}_{self.compiler}{self.compiler_vrsn}_{self.appl}\n\n'
         cctm_runtime += f'#> Set Working, Input, and Output Directories\n'
         cctm_runtime += f'setenv WORKDIR {self.CCTM_SCRIPTS}    #> Working Directory. Where the runscript is.\n'
         cctm_runtime += f'setenv OUTDIR  {self.CMAQ_DATA}/{self.appl}/output_CCTM_$RUNID  #> Output Directory\n'
-        cctm_runtime += f'setenv INPDIR  {self.CMAQ_INPDIR} #> Input Directory\n'
+        cctm_runtime += f'setenv INPDIR  {self.CCTM_INPDIR} #> Input Directory\n'
         cctm_runtime += f'setenv GRIDDESC $INPDIR/GRIDDESC    #> grid description file\n'
-        cctm_runtime += f'setenv GRID_NAME {self.grid_name}         #> check GRIDDESC file for GRID_NAME options\n'
+        cctm_runtime += f'setenv GRID_NAME {self.grid_name}         #> check GRIDDESC file for GRID_NAME options\n\n'
         cctm_runtime += f'#> Keep or Delete Existing Output Files\n'
         cctm_runtime += f'set CLOBBER_DATA = {delete_existing_output}\n'
         utils.write_to_template(run_cctm_path, cctm_runtime, id='%SETUP%')
@@ -438,6 +481,20 @@ class CMAQModel:
             print(f'No {n_procs} processor setup has been specified. Use [8, 12, 16, 24, 32, or 48].')
             raise ValueError
         utils.write_to_template(run_cctm_path, cctm_proc, id='%PROC%')
+
+        # Write CCTM input input directory information
+        cctm_files  = f'set ICpath    = {self.ICBC}                        #> initial conditions input directory\n' 
+        cctm_files += f'set BCpath    = {self.ICBC}                        #> boundary conditions input directory\n'
+        cctm_files += f'set EMISpath  = {self.CCTM_GRIDDED}   #> gridded emissions input directory\n'
+        cctm_files += f'set EMISpath2 = {self.CCTM_RWC}       #> gridded surface residential wood combustion emissions directory\n'
+        cctm_files += f'set IN_PTpath = {self.CCTM_PT}             #> point source emissions input directory\n'
+        cctm_files += f'set IN_LTpath = $INPDIR/lightning                   #> lightning NOx input directory\n'
+        cctm_files += f'set METpath   = {self.MCIP_OUT}                #> meteorology input directory\n' 
+        cctm_files += f'#set JVALpath  = $INPDIR/jproc                      #> offline photolysis rate table directory\n'
+        cctm_files += f'set OMIpath   = $BLD                                #> ozone column data for the photolysis model\n'
+        cctm_files += f'set LUpath    = $INPDIR/land                        #> BELD landuse data for windblown dust model\n'
+        cctm_files += f'set SZpath    = $INPDIR/land                        #> surf zone file for in-line seaspray emissions\n'
+        utils.write_to_template(run_cctm_path, cctm_files, id='%FILES%')
 
         # Write CCTM submission script
         cctm_sub =  f'#!/bin/csh\n'

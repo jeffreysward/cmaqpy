@@ -168,17 +168,7 @@ setenv CTM_WVEL Y            #> save derived vertical velocity component to conc
 #> Input Directories and Filenames
 # =====================================================================
 
-set ICpath    = $INPDIR/icbc                        #> initial conditions input directory 
-set BCpath    = $INPDIR/icbc                        #> boundary conditions input directory
-set EMISpath  = $INPDIR/emis/gridded_area/gridded   #> gridded emissions input directory
-set EMISpath2 = $INPDIR/emis/gridded_area/rwc       #> gridded surface residential wood combustion emissions directory
-set IN_PTpath = $INPDIR/emis/inln_point             #> point source emissions input directory
-set IN_LTpath = $INPDIR/lightning                   #> lightning NOx input directory
-set METpath   = $INPDIR/met/mcipv5.0                #> meteorology input directory 
-#set JVALpath  = $INPDIR/jproc                      #> offline photolysis rate table directory
-set OMIpath   = $BLD                                #> ozone column data for the photolysis model
-set LUpath    = $INPDIR/land                        #> BELD landuse data for windblown dust model
-set SZpath    = $INPDIR/land                        #> surf zone file for in-line seaspray emissions
+%FILES%
 
 # =====================================================================
 #> Begin Loop Through Simulation Days
@@ -296,8 +286,10 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
   #> In-line point emissions configuration
   setenv N_EMIS_PT 9          #> Number of elevated source groups
 
-  set STKCASEG = 12US1_2016ff_16j           # Stack Group Version Label
-  set STKCASEE = 12US1_cmaq_cb6_2016ff_16j  # Stack Emission Version Label
+#   set STKCASEG = 12US1_2016ff_16j           # Stack Group Version Label
+#   set STKCASEE = 12US1_cmaq_cb6_2016ff_16j  # Stack Emission Version Label
+  set STKCASEG = 12US1_2016fh_16j           # Stack Group Version Label
+  set STKCASEE = 12US1_cmaq_cb6_2016fh_16j  # Stack Emission Version Label
 
   # Time-Independent Stack Parameters for Inline Point Sources
   setenv STK_GRPS_001 $IN_PTpath/stack_groups/stack_groups_ptnonertac_12US2_2016fh_16j.ncf
