@@ -10,16 +10,19 @@ class CMAQModel:
     """
     This class provides a framework for running the CMAQ Model.
     """
-    def __init__(self, start_datetime, end_datetime, appl, coord_name, grid_name, chem_mech ='cb6r3_ae7_aq', setup_yaml='dirpaths.yml', compiler='gcc', compiler_vrsn='9.3.1', verbose=False):
+    def __init__(self, start_datetime, end_datetime, appl, coord_name, grid_name, chem_mech ='cb6r3_ae7_aq', cctm_vrsn='v533', setup_yaml='dirpaths.yml', compiler='gcc', compiler_vrsn='9.3.1', new_mcip=True, verbose=False):
         self.appl = appl
         self.coord_name = coord_name
         self.grid_name = grid_name
         self.chem_mech = chem_mech
+        self.cctm_vrsn = cctm_vrsn
         self.compiler = compiler
         self.compiler_vrsn = compiler_vrsn
         self.verbose = verbose
+        self.cctm_runid = f'{self.cctm_vrsn}_{self.compiler}{self.compiler_vrsn}_{self.appl}'
         if self.verbose:
             print(f'Application name: {self.appl}\nCoordinate name: {self.coord_name}\nGrid name: {self.grid_name}')
+            print(f'CCTM RUNID: {self.cctm_runid}')
 
         # Format the forecast start/end and determine the total time.
         self.start_datetime = utils.format_date(start_datetime)
@@ -39,13 +42,18 @@ class CMAQModel:
         self.BCON_SCRIPTS = f'{self.CMAQ_HOME}/PREP/bcon/scripts'
         self.CCTM_SCRIPTS = f'{self.CMAQ_HOME}/CCTM/scripts'
         self.CMAQ_DATA = dirpaths.get('CMAQ_DATA')
-        self.MCIP_OUT = f'{self.CMAQ_DATA}/{self.appl}/mcip'
+        if new_mcip:
+            self.MCIP_OUT = f'{self.CMAQ_DATA}/{self.appl}/mcip'
+        else:
+            self.MCIP_OUT = dirpaths.get('LOC_MCIP')
         self.CCTM_INPDIR = f'{self.CMAQ_DATA}/{self.appl}/input'
+        self.CCTM_OUTDIR = f'{self.CMAQ_DATA}/{self.appl}/output_CCTM_{self.cctm_runid}'
         self.ICBC = f'{self.CCTM_INPDIR}/icbc'
         self.CCTM_GRIDDED = f'{self.CCTM_INPDIR}/emis/gridded_area/gridded'
         self.CCTM_RWC = f'{self.CCTM_INPDIR}/emis/gridded_area/rwc'
         self.CCTM_PT = f'{self.CCTM_INPDIR}/emis/inln_point'
         self.CCTM_LAND = f'{self.CCTM_INPDIR}/land'
+        self.LOC_IC = dirpaths.get('LOC_IC')
         self.LOC_BC = dirpaths.get('LOC_BC')
         self.LOC_GRIDDED = dirpaths.get('LOC_GRIDDED')
         self.LOC_RWC = dirpaths.get('LOC_RWC')
@@ -354,14 +362,20 @@ class CMAQModel:
         cmd = self.CMD_LN % (self.GRIDDESC, f'{self.CCTM_INPDIR}/')
         cmd_gunzip = self.CMD_GUNZIP % (self.GRIDDESC)
 
-        # Link Boundary and Initial Conditions to $INPDIR/icbc
+        # Link Boundary Conditions to $INPDIR/icbc
         utils.make_dirs(self.ICBC)
         for date in start_datetimes_lst:
-            local_icbc_file = f'{self.LOC_BC}/*{date.strftime("%y%m%d")}'
-            cmd = cmd + '; ' + self.CMD_LN % (local_icbc_file, f'{self.ICBC}/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_icbc_file)
-        #### NOTE: I havent included any initial conditions here yet because 
-        #### I need to check which file CCTM is looking for when ititializing from a previous simulation
+            local_bc_file = f'{self.LOC_BC}/*{date.strftime("%y%m%d")}'
+            cmd = cmd + '; ' + self.CMD_LN % (local_bc_file, f'{self.ICBC}/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_bc_file)
+        
+        # Link Initial Conditions to self.CCTM_OUTDIR
+        utils.make_dirs(self.CCTM_OUTDIR)
+        yesterday = start_datetimes_lst[0] - datetime.timedelta(days=1)
+        local_ic_file = f'{self.LOC_IC}/CCTM_CGRID_*{yesterday.strftime("%Y%m%d")}.nc'
+        cmd = cmd + '; ' + self.CMD_LN % (local_ic_file, f'{self.CCTM_OUTDIR}/CCTM_CGRID_{self.cctm_runid}_{yesterday.strftime("%Y%m%d")}.nc')
+        local_init_medc_1_file = f'{self.LOC_IC}/CCTM_MEDIA_CONC_*{yesterday.strftime("%y%m%d")}.nc'
+        cmd = cmd + '; ' + self.CMD_LN % (local_init_medc_1_file, f'{self.CCTM_OUTDIR}/CCTM_MEDIA_CONC_{self.cctm_runid}_{yesterday.strftime("%Y%m%d")}.nc')
 
         # Link gridded emissions to $INPDIR/emis/gridded_area/gridded
         utils.make_dirs(self.CCTM_GRIDDED)
@@ -469,7 +483,7 @@ class CMAQModel:
         os.system(cmd)
         
     
-    def run_cctm(self, cctm_vrsn='v533', delete_existing_output='TRUE', new_sim='TRUE', tstep='010000', n_procs=16, run_hours=24, setup_only=False):
+    def run_cctm(self, delete_existing_output='TRUE', new_sim='FALSE', tstep='010000', cctm_hours=24, n_procs=16, run_hours=24, setup_only=False):
         """
         Setup and run CCTM, CMAQ's chemical transport model.
         """
@@ -493,19 +507,19 @@ class CMAQModel:
         cctm_runtime += f'#> Change back to the CCTM scripts directory\n'
         cctm_runtime += f'cd {self.CCTM_SCRIPTS}\n'
         cctm_runtime += f'#> Set General Parameters for Configuring the Simulation\n'
-        cctm_runtime += f'set VRSN      = {cctm_vrsn}              #> Code Version - note this must be updated if using ISAM or DDM\n'
+        cctm_runtime += f'set VRSN      = {self.cctm_vrsn}              #> Code Version - note this must be updated if using ISAM or DDM\n'
         cctm_runtime += f'set PROC      = mpi               #> serial or mpi\n'
         cctm_runtime += f'set MECH      = {self.chem_mech}      #> Mechanism ID\n'
         cctm_runtime += f'set APPL      = {self.appl}  #> Application Name (e.g. Gridname)\n\n'
         cctm_runtime += f'#> Define RUNID as any combination of parameters above or others. By default,\n'
         cctm_runtime += f'#> this information will be collected into this one string, $RUNID, for easy\n'
         cctm_runtime += f'#> referencing in output binaries and log files as well as in other scripts.\n'
-        cctm_runtime += f'setenv RUNID  {cctm_vrsn}_{self.compiler}{self.compiler_vrsn}_{self.appl}\n\n'
+        cctm_runtime += f'setenv RUNID  {self.cctm_runid}\n\n'
         cctm_runtime += f'#> Set Working, Input, and Output Directories\n'
         cctm_runtime += f'setenv WORKDIR {self.CCTM_SCRIPTS}    #> Working Directory. Where the runscript is.\n'
-        cctm_runtime += f'setenv OUTDIR  {self.CMAQ_DATA}/{self.appl}/output_CCTM_$RUNID  #> Output Directory\n'
+        cctm_runtime += f'setenv OUTDIR  {self.CCTM_OUTDIR}  #> Output Directory\n'
         cctm_runtime += f'setenv INPDIR  {self.CCTM_INPDIR} #> Input Directory\n'
-        cctm_runtime += f'setenv GRIDDESC $INPDIR/GRIDDESC    #> grid description file\n'
+        cctm_runtime += f'setenv GRIDDESC {self.GRIDDESC}    #> grid description file\n'
         cctm_runtime += f'setenv GRID_NAME {self.grid_name}         #> check GRIDDESC file for GRID_NAME options\n\n'
         cctm_runtime += f'#> Keep or Delete Existing Output Files\n'
         cctm_runtime += f'set CLOBBER_DATA = {delete_existing_output}\n'
@@ -515,10 +529,10 @@ class CMAQModel:
         cctm_time =  f'#> Set Start and End Days for looping\n'
         cctm_time += f'setenv NEW_START {new_sim}        #> Set to FALSE for model restart\n'
         cctm_time += f'set START_DATE = "{self.start_datetime.strftime("%Y-%m-%d")}"     #> beginning date\n'
-        cctm_time += f'set END_DATE   = "{self.end_datetime.strftime("%Y-%m-%d")}"     #> ending date\n'
+        cctm_time += f'set END_DATE   = "{self.end_datetime.strftime("%Y-%m-%d")}"     #> ending date\n\n'
         cctm_time += f'#> Set Timestepping Parameters\n'
         cctm_time += f'set STTIME     = {self.start_datetime.strftime("%H%M%S")}            #> beginning GMT time (HHMMSS)\n'
-        cctm_time += f'set NSTEPS     = {utils.strfdelta(self.delt, fmt="{H:02}{M:02}{S:02}")}            #> time duration (HHMMSS) for this run\n'
+        cctm_time += f'set NSTEPS     = {cctm_hours}0000            #> time duration (HHMMSS) for this run\n'
         cctm_time += f'set TSTEP      = {tstep}            #> output time step interval (HHMMSS)\n'
         utils.write_to_template(run_cctm_path, cctm_time, id='%TIME%')
 
@@ -625,7 +639,7 @@ class CMAQModel:
             # Not sure what the correct failure message should be!
             # failed = '-------------------------------------------' in msg
         elif program == 'cctm':
-            msg = utils.read_last(f'{self.CCTM_SCRIPTS}/run_cctm_{self.appl}.log', n_lines=40)
+            msg = utils.read_last(f'{self.CCTM_SCRIPTS}/cctm_{self.appl}.log', n_lines=40)
             complete = '|>---   PROGRAM COMPLETED SUCCESSFULLY   ---<|' in msg
             failed = 'Runscript Detected an Error' in msg
         else:
