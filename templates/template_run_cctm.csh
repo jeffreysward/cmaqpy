@@ -85,7 +85,7 @@ set NCELLS = `echo "${NX} * ${NY} * ${NZ}" | bc -l`
    setenv AVG_FILE_ENDTIME N     #> override default beginning ACONC timestamp [ default: N ]
 
 #> Synchronization Time Step and Tolerance Options
-setenv CTM_MAXSYNC 300       #> max sync time step (sec) [ default: 720 ]
+setenv CTM_MAXSYNC 720       #> max sync time step (sec) [ default: 720 ]
 setenv CTM_MINSYNC  60       #> min sync time step (sec) [ default: 60 ]
 setenv SIGMA_SYNC_TOP 0.7    #> top sigma level thru which sync step determined [ default: 0.7 ] 
 #setenv ADV_HDIV_LIM 0.95    #> maximum horiz. div. limit for adv step adjust [ default: 0.9 ]
@@ -116,7 +116,7 @@ setenv CTM_SFC_HONO Y        #> surface HONO interaction [ default: Y ]
                              #> please see user guide (6.10.4 Nitrous Acid (HONO)) 
                              #> for dependency on percent urban fraction dataset
 setenv CTM_GRAV_SETL Y       #> vdiff aerosol gravitational sedimentation [ default: Y ]
-setenv CTM_BIOGEMIS Y        #> calculate in-line biogenic emissions [ default: N ]
+setenv CTM_BIOGEMIS N        #> calculate in-line biogenic emissions [ default: N ]
 
 #> Vertical Extraction Options
 setenv VERTEXT N
@@ -229,10 +229,12 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
      set ICpath = $OUTDIR
      setenv ICFILE CCTM_CGRID_${RUNID}_${YESTERDAY}.nc
      setenv INIT_MEDC_1 $ICpath/CCTM_MEDIA_CONC_${RUNID}_${YESTERDAY}.nc
+     setenv INITIAL_RUN N
   endif
 
   #> Boundary conditions
-  set BCFILE = BCON_${YYYYMMDD}_bench.nc
+#   set BCFILE = BCON_${YYYYMMDD}_bench.nc
+  set BCFILE = BCON_v53_12OTC2_regrid_from36US3_${YYYYMMDD}
 
   #> Off-line photolysis rates 
   #set JVALfile  = JTABLE_${YYYYJJJ}
@@ -274,45 +276,50 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
   setenv EMISSCTRL_NML ${BLD}/EmissCtrl_${MECH}.nml
 
   #> Spatial Masks For Emissions Scaling
-  setenv CMAQ_MASKS $SZpath/12US1_surf_bench.nc #> horizontal grid-dependent surf zone file
+#   setenv CMAQ_MASKS $SZpath/12US1_surf_bench.nc #> horizontal grid-dependent surf zone file
+  setenv CMAQ_MASKS $SZpath/12US1_surf.12otc2.ncf #> horizontal grid-dependent surf zone file
 
   #> Gridded Emissions Files 
   setenv N_EMIS_GR 2
-  set EMISfile  = emis_mole_all_${YYYYMMDD}_cb6_bench.nc
+#   set EMISfile  = emis_mole_all_${YYYYMMDD}_cb6_bench.nc
+  set EMISfile = emis_mole_all_${YYYYMMDD}_12US1_withbeis_2016fh_16j.12us2.ptnonertac_apt_fix.12OTC2.ncf
   setenv GR_EMIS_001 ${EMISpath}/${EMISfile}
   setenv GR_EMIS_LAB_001 GRIDDED_EMIS
   setenv GR_EM_SYM_DATE_001 F # To change default behaviour please see Users Guide for EMIS_SYM_DATE
 
-  set EMISfile  = emis_mole_rwc_${YYYYMMDD}_12US1_cmaq_cb6_2016ff_16j.nc
+#   set EMISfile  = emis_mole_rwc_${YYYYMMDD}_12US1_cmaq_cb6_2016ff_16j.nc
+  set EMISfile  = emis_mole_rwc_${YYYYMMDD}_12US1_cmaq_cb6_2016fh_16j_12OTC2.ncf
   setenv GR_EMIS_002 ${EMISpath2}/${EMISfile}
   setenv GR_EMIS_LAB_002 GR_RES_FIRES
   setenv GR_EM_SYM_DATE_002 F # To change default behaviour please see Users Guide for EMIS_SYM_DATE
 
   #> In-line point emissions configuration
-  setenv N_EMIS_PT 8          #> Number of elevated source groups
+  setenv N_EMIS_PT 9          #> Number of elevated source groups
 
   set STKCASEG = 12US1_2016ff_16j           # Stack Group Version Label
   set STKCASEE = 12US1_cmaq_cb6_2016ff_16j  # Stack Emission Version Label
 
   # Time-Independent Stack Parameters for Inline Point Sources
-  setenv STK_GRPS_001 $IN_PTpath/stack_groups/stack_groups_ptnonipm_${STKCASEG}.nc
-  setenv STK_GRPS_002 $IN_PTpath/stack_groups/stack_groups_ptegu_${STKCASEG}.nc
-  setenv STK_GRPS_003 $IN_PTpath/stack_groups/stack_groups_othpt_${STKCASEG}.nc
-  setenv STK_GRPS_004 $IN_PTpath/stack_groups/stack_groups_ptagfire_${YYYYMMDD}_${STKCASEG}.nc
-  setenv STK_GRPS_005 $IN_PTpath/stack_groups/stack_groups_ptfire_${YYYYMMDD}_${STKCASEG}.nc
-  setenv STK_GRPS_006 $IN_PTpath/stack_groups/stack_groups_ptfire_othna_${YYYYMMDD}_${STKCASEG}.nc
-  setenv STK_GRPS_007 $IN_PTpath/stack_groups/stack_groups_pt_oilgas_${STKCASEG}.nc
-  setenv STK_GRPS_008 $IN_PTpath/stack_groups/stack_groups_cmv_c3_${STKCASEG}.nc
+  setenv STK_GRPS_001 $IN_PTpath/stack_groups/stack_groups_ptnonertac_12US2_2016fh_16j.ncf
+  setenv STK_GRPS_002 $IN_PTpath/stack_groups/stack_groups_ptertac_smkfix_12US2_2016fh_16j.ncf
+  setenv STK_GRPS_003 $IN_PTpath/stack_groups/stack_groups_othpt_${STKCASEG}.ncf
+  setenv STK_GRPS_004 $IN_PTpath/stack_groups/stack_groups_ptagfire_${YYYYMMDD}_${STKCASEG}.ncf
+  setenv STK_GRPS_005 $IN_PTpath/stack_groups/stack_groups_ptfire_${YYYYMMDD}_${STKCASEG}.ncf
+  setenv STK_GRPS_006 $IN_PTpath/stack_groups/stack_groups_ptfire_othna_${YYYYMMDD}_${STKCASEG}.ncf
+  setenv STK_GRPS_007 $IN_PTpath/stack_groups/stack_groups_pt_oilgas_${STKCASEG}.ncf
+  setenv STK_GRPS_008 $IN_PTpath/stack_groups/stack_groups_cmv_c3_12_${STKCASEG}.ncf
+  setenv STK_GRPS_009 $IN_PTpath/stack_groups/stack_groups_cmv_c1c2_12_${STKCASEG}.ncf
 
   # Emission Rates for Inline Point Sources
-  setenv STK_EMIS_001 $IN_PTpath/ptnonipm/inln_mole_ptnonipm_${YYYYMMDD}_${STKCASEE}.nc
-  setenv STK_EMIS_002 $IN_PTpath/ptegu/inln_mole_ptegu_${YYYYMMDD}_${STKCASEE}.nc
-  setenv STK_EMIS_003 $IN_PTpath/othpt/inln_mole_othpt_${YYYYMMDD}_${STKCASEE}.nc
-  setenv STK_EMIS_004 $IN_PTpath/ptagfire/inln_mole_ptagfire_${YYYYMMDD}_${STKCASEE}.nc
-  setenv STK_EMIS_005 $IN_PTpath/ptfire/inln_mole_ptfire_${YYYYMMDD}_${STKCASEE}.nc
-  setenv STK_EMIS_006 $IN_PTpath/ptfire_othna/inln_mole_ptfire_othna_${YYYYMMDD}_${STKCASEE}.nc
-  setenv STK_EMIS_007 $IN_PTpath/pt_oilgas/inln_mole_pt_oilgas_${YYYYMMDD}_${STKCASEE}.nc
-  setenv STK_EMIS_008 $IN_PTpath/cmv_c3/inln_mole_cmv_c3_${YYYYMMDD}_${STKCASEE}.nc
+  setenv STK_EMIS_001 $IN_PTpath/inln_mole_ptnonertac_${YYYYMMDD}_12US2_cmaq_cb6_2016fh_16j.ncf
+  setenv STK_EMIS_002 $IN_PTpath/inln_mole_ptertac_smkfix_${YYYYMMDD}_12US2_cmaq_cb6_2016fh_16j.ncf
+  setenv STK_EMIS_003 $IN_PTpath/inln_mole_othpt_${YYYYMMDD}_${STKCASEE}.ncf
+  setenv STK_EMIS_004 $IN_PTpath/inln_mole_ptagfire_${YYYYMMDD}_${STKCASEE}.ncf
+  setenv STK_EMIS_005 $IN_PTpath/inln_mole_ptfire_${YYYYMMDD}_${STKCASEE}.ncf
+  setenv STK_EMIS_006 $IN_PTpath/inln_mole_ptfire_othna_${YYYYMMDD}_${STKCASEE}.ncf
+  setenv STK_EMIS_007 $IN_PTpath/inln_mole_pt_oilgas_${YYYYMMDD}_${STKCASEE}.ncf
+  setenv STK_EMIS_008 $IN_PTpath/inln_mole_cmv_c3_12_${YYYYMMDD}_${STKCASEE}.ncf
+  setenv STK_EMIS_009 $IN_PTpath/inln_mole_cmv_c1c2_12_${YYYYMMDD}_${STKCASEE}.ncf
 
   # Label Each Emissions Stream
   setenv STK_EMIS_LAB_001 PT_NONEGU
@@ -323,6 +330,7 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
   setenv STK_EMIS_LAB_006 PT_OTHFIRES
   setenv STK_EMIS_LAB_007 PT_OILGAS
   setenv STK_EMIS_LAB_008 PT_CMV
+  setenv STK_EMIS_LAB_009 PT_CMV12
 
   # Stack emissions diagnostic files
   #setenv STK_EMIS_DIAG_001 2DSUM
@@ -342,6 +350,7 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
   setenv STK_EM_SYM_DATE_006 T
   setenv STK_EM_SYM_DATE_007 T
   setenv STK_EM_SYM_DATE_008 T
+  setenv STK_EM_SYM_DATE_009 T
 
   #> Lightning NOx configuration
   if ( $CTM_LTNG_NO == 'Y' ) then
@@ -377,7 +386,8 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
   endif
 
   #> In-line sea spray emissions configuration
-  setenv OCEAN_1 $SZpath/12US1_surf_bench.nc #> horizontal grid-dependent surf zone file
+#   setenv OCEAN_1 $SZpath/12US1_surf_bench.nc #> horizontal grid-dependent surf zone file
+  setenv OCEAN_1 $SZpath/12US1_surf.12otc2.ncf #> horizontal grid-dependent surf zone file
 
   #> Bidirectional ammonia configuration
   if ( $CTM_ABFLUX == 'Y' ) then
@@ -425,7 +435,7 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
        setenv SA_CGRID_1      "$OUTDIR/CCTM_SA_CGRID_${CTM_APPL}.nc -v"
 
        #> Set optional ISAM regions files
-       setenv ISAM_REGIONS $INPDIR/GRIDMASK_STATES_12SE1.nc
+      #  setenv ISAM_REGIONS $INPDIR/GRIDMASK_STATES_12SE1.nc
 
 
     endif
