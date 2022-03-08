@@ -195,9 +195,6 @@ set IOFORM = 1
 #     BTRIM = -1, and BTRIM will be ignored in favor of specific window
 #     information in X0, Y0, NCOLS, and NROWS.
 #-----------------------------------------------------------------------
-
-set BTRIM = -1
-
 #-----------------------------------------------------------------------
 # Define MCIP subset domain.  (Only used if BTRIM = -1.  Otherwise,
 # the following variables will be set automatically from BTRIM and
@@ -218,10 +215,7 @@ set BTRIM = -1
 # For the 4OTC2 domain
 # "set X0 = 87" "set Y0  = 9" "set NCOLS = 126" "set NROWS = 156"
 
-set X0    =  87
-set Y0    =  9
-set NCOLS =  126
-set NROWS = 156
+%DOMAIN%
 
 #-----------------------------------------------------------------------
 # Set coordinates for cell for diagnostic prints on output domain.

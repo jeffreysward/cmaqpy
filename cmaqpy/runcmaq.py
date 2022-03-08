@@ -32,6 +32,27 @@ class CMAQModel:
             print(f'CMAQ run starting on: {self.start_datetime}')
             print(f'CMAQ run ending on: {self.end_datetime}')
 
+        # Define the domain windowing paramters for MCIP
+        if self.grid_name == '12OTC2':
+            self.mcip_btrim = -1
+            self.mcip_x0 = 141
+            self.mcip_y0 = 15
+            self.mcip_ncols = 273
+            self.mcip_nrows = 246  
+        elif self.grid_name == '4OTC2':
+            self.mcip_btrim = -1
+            self.mcip_x0 = 87
+            self.mcip_y0 = 9
+            self.mcip_ncols = 126
+            self.mcip_nrows = 156
+        else:
+            # This will use the entire WRF domain
+            self.mcip_btrim = 0
+            self.mcip_x0 = 0
+            self.mcip_y0 = 0
+            self.mcip_ncols = 0
+            self.mcip_nrows = 0
+
         # Set working and WRF model directory names
         dirs = fetch_yaml(setup_yaml)
         dirpaths = dirs.get('directory_paths')
@@ -68,6 +89,7 @@ class CMAQModel:
         self.GRIDDESC = filepaths.get('GRIDDESC')
 
         # Define the names of the CMAQ output files
+        #### Maybe use this in the future
 
         # Define linux command aliai
         self.CMD_LN = 'ln -sf %s %s'
@@ -142,6 +164,14 @@ class CMAQModel:
         mcip_time += f'set MCIP_END   = {mcip_end_datetime.strftime("%Y-%m-%d_%H:%M:%S.0000")}\n'  # [UTC]
         mcip_time += f'set INTVL      = {t_step}\n' # [min]
         utils.write_to_template(run_mcip_path, mcip_time, id='%TIME%')
+
+        # Write domain windowing parameters to MCIP run script
+        mcip_domain  = f'set BTRIM = {self.mcip_btrim}'
+        mcip_domain += f'set X0    =  {self.mcip_x0}'
+        mcip_domain += f'set Y0    =  {self.mcip_y0}'
+        mcip_domain += f'set NCOLS =  {self.mcip_ncols}'
+        mcip_domain += f'set NROWS =  {self.mcip_nrows}'
+        utils.write_to_template(run_mcip_path, mcip_domain, id='%DOMAIN%')
 
         if self.verbose:
             print('Done writing MCIP run script!\n')
