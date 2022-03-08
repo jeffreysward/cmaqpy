@@ -45,6 +45,7 @@ class CMAQModel:
         self.CCTM_GRIDDED = f'{self.CCTM_INPDIR}/emis/gridded_area/gridded'
         self.CCTM_RWC = f'{self.CCTM_INPDIR}/emis/gridded_area/rwc'
         self.CCTM_PT = f'{self.CCTM_INPDIR}/emis/inln_point'
+        self.CCTM_LAND = f'{self.CCTM_INPDIR}/land'
         self.LOC_BC = dirpaths.get('LOC_BC')
         self.LOC_GRIDDED = dirpaths.get('LOC_GRIDDED')
         self.LOC_RWC = dirpaths.get('LOC_RWC')
@@ -410,6 +411,14 @@ class CMAQModel:
         for date in start_datetimes_lst:
             cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/cmv_c1c2_12/inln_mole_cmv_c1c2_12_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/cmv_c1c2_12/stack_groups_cmv_c1c2_12_*', f'{self.CCTM_PT}/stack_groups/')
+
+        # Link files for emissions scaling and sea spray to $INPDIR/land
+        if not os.path.exists(f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic'):
+            os.makedirs(f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic', 0o755)
+        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km*', f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic/')
+        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/12US1_surf.12otc2.ncf', f'{self.CCTM_LAND}/')
+        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/beld41_feb2017_waterfix_envcan_12US2.12OTC2.ncf', f'{self.CCTM_LAND}/')
+
         os.system(cmd)
         
     
@@ -492,8 +501,8 @@ class CMAQModel:
         cctm_files += f'set METpath   = {self.MCIP_OUT}                #> meteorology input directory\n' 
         cctm_files += f'#set JVALpath  = $INPDIR/jproc                      #> offline photolysis rate table directory\n'
         cctm_files += f'set OMIpath   = $BLD                                #> ozone column data for the photolysis model\n'
-        cctm_files += f'set LUpath    = $INPDIR/land                        #> BELD landuse data for windblown dust model\n'
-        cctm_files += f'set SZpath    = $INPDIR/land                        #> surf zone file for in-line seaspray emissions\n'
+        cctm_files += f'set LUpath    = {self.CCTM_LAND}                        #> BELD landuse data for windblown dust model\n'
+        cctm_files += f'set SZpath    = {self.CCTM_LAND}                        #> surf zone file for in-line seaspray emissions\n'
         utils.write_to_template(run_cctm_path, cctm_files, id='%FILES%')
 
         # Write CCTM submission script

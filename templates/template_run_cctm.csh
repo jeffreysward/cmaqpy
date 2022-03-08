@@ -383,10 +383,10 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
 
   #> Bidirectional ammonia configuration
   if ( $CTM_ABFLUX == 'Y' ) then
-     setenv E2C_SOIL ${LUpath}/epic_festc1.4_20180516/2016_US1_soil_bench.nc
-     setenv E2C_CHEM ${LUpath}/epic_festc1.4_20180516/2016_US1_time${YYYYMMDD}_bench.nc
-     setenv E2C_CHEM_YEST ${LUpath}/epic_festc1.4_20180516/2016_US1_time${YESTERDAY}_bench.nc
-     setenv E2C_LU ${LUpath}/beld4_12kmCONUS_2011nlcd_bench.nc
+     setenv E2C_SOIL ${LUpath}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_soil.12otc2.ncf
+     setenv E2C_CHEM ${LUpath}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_time${YYYYMMDD}.12otc2.ncf
+     setenv E2C_CHEM_YEST ${LUpath}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_time${YESTERDAY}.12otc2.ncf
+     setenv E2C_LU ${LUpath}/beld41_feb2017_waterfix_envcan_12US2.12OTC2.ncf
   endif
 
 #> Inline Process Analysis 
