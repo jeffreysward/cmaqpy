@@ -66,6 +66,7 @@ class CMAQModel:
         self.CMD_CP = 'cp %s %s'
         self.CMD_MV = 'mv %s %s'
         self.CMD_RM = 'rm %s'
+        self.CMD_GUNZIP = 'gunzip %s'
         self.CMD_ICON = f'{self.ICON_SCRIPTS}/run_icon.csh >& {self.MCIP_SCRIPTS}/run_icon_{self.appl}.log'
         self.CMD_BCON = f'{self.BCON_SCRIPTS}/run_bcon.csh >& {self.MCIP_SCRIPTS}/run_bcon_{self.appl}.log'
         self.CMD_CCTM = f'sbatch --requeue {self.CCTM_SCRIPTS}/submit_cctm.csh'
@@ -351,69 +352,120 @@ class CMAQModel:
 
         # Link the GRIDDESC to $INPDIR
         cmd = self.CMD_LN % (self.GRIDDESC, f'{self.CCTM_INPDIR}/')
+        cmd_gunzip = self.CMD_GUNZIP % (self.GRIDDESC)
 
         # Link Boundary and Initial Conditions to $INPDIR/icbc
         utils.make_dirs(self.ICBC)
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_BC}/*{date.strftime("%y%m%d")}', f'{self.ICBC}/')
+            local_icbc_file = f'{self.LOC_BC}/*{date.strftime("%y%m%d")}'
+            cmd = cmd + '; ' + self.CMD_LN % (local_icbc_file, f'{self.ICBC}/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_icbc_file)
         #### NOTE: I havent included any initial conditions here yet because 
         #### I need to check which file CCTM is looking for when ititializing from a previous simulation
 
         # Link gridded emissions to $INPDIR/emis/gridded_area/gridded
         utils.make_dirs(self.CCTM_GRIDDED)
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_GRIDDED}/emis_mole_all_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_GRIDDED}/')
+            local_gridded_file = f'{self.LOC_GRIDDED}/emis_mole_all_20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (local_gridded_file, f'{self.CCTM_GRIDDED}/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_gridded_file)
 
         # Link residential wood combustion to $INPDIR/emis/gridded_area/rwc
         utils.make_dirs(self.CCTM_RWC)
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_RWC}/emis_mole_rwc_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_RWC}/')
+            local_rwc_file = f'{self.LOC_RWC}/emis_mole_rwc_20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (local_rwc_file, f'{self.CCTM_RWC}/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_rwc_file)
 
         # Link point source emissions to $INPDIR/emis/inln_point 
         # and the associated stack groups to $INPDIR/emis/inln_point/stack_groups
         utils.make_dirs(f'{self.CCTM_PT}/stack_groups')
         # Link the ptnonertac sector
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptnonertac_hourly/inln_mole_ptnonertac_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
-        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptnonertac_hourly/stack_groups_ptnonertac_*', f'{self.CCTM_PT}/stack_groups/')
+            local_ptnonertac_file = f'{self.LOC_IN_PT}/ptnonertac_hourly/inln_mole_ptnonertac_20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (local_ptnonertac_file, f'{self.CCTM_PT}/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptnonertac_file)
+        local_ptnonertac_stk_file = f'{self.LOC_IN_PT}/ptnonertac_hourly/stack_groups_ptnonertac_*'
+        cmd = cmd + '; ' + self.CMD_LN % (local_ptnonertac_stk_file, f'{self.CCTM_PT}/stack_groups/')
+        cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptnonertac_stk_file)
         # Link the ptertac sector
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_ERTAC}/inln_mole_ptertac_smkfix_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
-        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_ERTAC}/stack_groups_ptertac_*', f'{self.CCTM_PT}/stack_groups/')
+            local_ptertac_file = f'{self.LOC_ERTAC}/inln_mole_ptertac_smkfix_20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (local_ptertac_file, f'{self.CCTM_PT}/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptertac_file)
+        local_ptertac_stk_file = f'{self.LOC_ERTAC}/stack_groups_ptertac_*'
+        cmd = cmd + '; ' + self.CMD_LN % (local_ptertac_stk_file, f'{self.CCTM_PT}/stack_groups/')
+        cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptertac_stk_file)
         # Link the othpt sector
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/othpt/inln_mole_othpt_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
-        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/othpt/stack_groups_othpt_*', f'{self.CCTM_PT}/stack_groups/')
+            local_othpt_file = f'{self.LOC_IN_PT}/othpt/inln_mole_othpt_20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (local_othpt_file, f'{self.CCTM_PT}/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_othpt_file)
+        local_othpt_stk_file = f'{self.LOC_IN_PT}/othpt/stack_groups_othpt_*'
+        cmd = cmd + '; ' + self.CMD_LN % (local_othpt_stk_file, f'{self.CCTM_PT}/stack_groups/')
+        cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_othpt_stk_file)
         # Link the ptagfire sector
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptagfire/inln_mole_ptagfire_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptagfire/stack_groups_ptagfire_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/stack_groups/')
+            local_ptagfire_file = f'{self.LOC_IN_PT}/ptagfire/inln_mole_ptagfire_20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (local_ptagfire_file, f'{self.CCTM_PT}/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptagfire_file)
+            local_ptagfire_stk_file = f'{self.LOC_IN_PT}/ptagfire/stack_groups_ptagfire_20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (local_ptagfire_stk_file, f'{self.CCTM_PT}/stack_groups/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptagfire_stk_file)
         # Link the ptfire sector
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptfire/inln_mole_ptfire_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptfire/stack_groups_ptfire_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/stack_groups/')
+            local_ptfire_file = f'{self.LOC_IN_PT}/ptfire/inln_mole_ptfire_20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (local_ptfire_file, f'{self.CCTM_PT}/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptfire_file)
+            local_ptfire_stk_file = f'{self.LOC_IN_PT}/ptfire/stack_groups_ptfire_20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (local_ptfire_stk_file, f'{self.CCTM_PT}/stack_groups/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptfire_stk_file)
         # Link the ptfire_othna sector
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptfire_othna/inln_mole_ptfire_othna_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/ptfire_othna/stack_groups_ptfire_othna_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/stack_groups/')
+            local_ptfire_othna_file = f'{self.LOC_IN_PT}/ptfire_othna/inln_mole_ptfire_othna_20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (local_ptfire_othna_file, f'{self.CCTM_PT}/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptfire_othna_file)
+            local_ptfire_othna_stk_file = f'{self.LOC_IN_PT}/ptfire_othna/stack_groups_ptfire_othna_20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (local_ptfire_othna_stk_file, f'{self.CCTM_PT}/stack_groups/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptfire_othna_stk_file)
         # Link the pt_oilgas sector
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/pt_oilgas/inln_mole_pt_oilgas_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
-        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/pt_oilgas/stack_groups_pt_oilgas_*', f'{self.CCTM_PT}/stack_groups/')
+            local_pt_oilgas_file = f'{self.LOC_IN_PT}/pt_oilgas/inln_mole_pt_oilgas_20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (local_pt_oilgas_file, f'{self.CCTM_PT}/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_pt_oilgas_file)
+        local_pt_oilgas_stk_file = f'{self.LOC_IN_PT}/pt_oilgas/stack_groups_pt_oilgas_*'
+        cmd = cmd + '; ' + self.CMD_LN % (local_pt_oilgas_stk_file, f'{self.CCTM_PT}/stack_groups/')
+        cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_pt_oilgas_stk_file)
         # Link the cmv_c3_12 sector
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/cmv_c3_12/inln_mole_cmv_c3_12_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
-        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/cmv_c3_12/stack_groups_cmv_c3_12_*', f'{self.CCTM_PT}/stack_groups/')
+            local_cmv_c3_12_file = f'{self.LOC_IN_PT}/cmv_c3_12/inln_mole_cmv_c3_12_20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (local_cmv_c3_12_file, f'{self.CCTM_PT}/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_cmv_c3_12_file)
+        local_cmv_c3_12_stk_file = f'{self.LOC_IN_PT}/cmv_c3_12/stack_groups_cmv_c3_12_*'
+        cmd = cmd + '; ' + self.CMD_LN % (local_cmv_c3_12_stk_file, f'{self.CCTM_PT}/stack_groups/')
+        cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_cmv_c3_12_stk_file)
         # Link the cmv_c1c2_12 sector
         for date in start_datetimes_lst:
-            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/cmv_c1c2_12/inln_mole_cmv_c1c2_12_20*{date.strftime("%y%m%d")}*', f'{self.CCTM_PT}/')
-        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_IN_PT}/cmv_c1c2_12/stack_groups_cmv_c1c2_12_*', f'{self.CCTM_PT}/stack_groups/')
+            lcoal_cmv_c1c2_12_file = f'{self.LOC_IN_PT}/cmv_c1c2_12/inln_mole_cmv_c1c2_12_20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (lcoal_cmv_c1c2_12_file, f'{self.CCTM_PT}/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (lcoal_cmv_c1c2_12_file)
+        lcoal_cmv_c1c2_12_stk_file = f'{self.LOC_IN_PT}/cmv_c1c2_12/stack_groups_cmv_c1c2_12_*'
+        cmd = cmd + '; ' + self.CMD_LN % (lcoal_cmv_c1c2_12_stk_file, f'{self.CCTM_PT}/stack_groups/')
+        cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (lcoal_cmv_c1c2_12_stk_file)
 
         # Link files for emissions scaling and sea spray to $INPDIR/land
         utils.make_dirs(f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic')
-        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_time20*{date.strftime("%y%m%d")}*', f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic/')
+        for date in start_datetimes_lst:
+            local_festc_file = f'{self.LOC_LAND}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_time20*{date.strftime("%y%m%d")}*'
+            cmd = cmd + '; ' + self.CMD_LN % (local_festc_file, f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic/')
+            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_festc_file)
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/12US1_surf.12otc2.ncf', f'{self.CCTM_LAND}/')
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/beld41_feb2017_waterfix_envcan_12US2.12OTC2.ncf', f'{self.CCTM_LAND}/')
+        
+        # Run the gunzip commands
+        os.system(cmd_gunzip)
+        
+        # Run the link commands
         os.system(cmd)
         
     
