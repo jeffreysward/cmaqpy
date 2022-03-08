@@ -5,8 +5,8 @@ This example shows how to run the CCTM benchmark case using the `CMAQModel` clas
 from cmaqpy.runcmaq import CMAQModel
 
 # Specify the start/end times
-start_datetime = 'August 05, 2016 01'  # second timestep in the wrfout file
-end_datetime = 'August 15, 2016 23'  # second to last timestep in the wrfout file
+start_datetime = 'August 06, 2016'  # first day that you want run
+end_datetime = 'August 15, 2016'  # ONE DAY AFTER the last day you want run
 # Specify if you want to run the 12 km or the 4 km domain
 appl = '2016_12OTC2'
 # appl = '2016_4OTC2'

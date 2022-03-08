@@ -418,7 +418,6 @@ class CMAQModel:
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km*', f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic/')
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/12US1_surf.12otc2.ncf', f'{self.CCTM_LAND}/')
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/beld41_feb2017_waterfix_envcan_12US2.12OTC2.ncf', f'{self.CCTM_LAND}/')
-
         os.system(cmd)
         
     
@@ -435,6 +434,8 @@ class CMAQModel:
         submit_cctm_path = f'{self.CCTM_SCRIPTS}/submit_cctm.csh'
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_submit_cctm.csh', submit_cctm_path)
         os.system(cmd)
+        # Setup the input directory using the setup_inpdir method
+        self.setup_inpdir()
 
         # Write CCTM setup options to the run script
         cctm_runtime =  f'#> Toggle Diagnostic Mode which will print verbose information to standard output\n'
