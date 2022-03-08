@@ -166,15 +166,15 @@ class CMAQModel:
         utils.write_to_template(run_mcip_path, mcip_time, id='%TIME%')
 
         # Write domain windowing parameters to MCIP run script
-        mcip_domain  = f'set BTRIM = {self.mcip_btrim}'
-        mcip_domain += f'set X0    =  {self.mcip_x0}'
-        mcip_domain += f'set Y0    =  {self.mcip_y0}'
-        mcip_domain += f'set NCOLS =  {self.mcip_ncols}'
-        mcip_domain += f'set NROWS =  {self.mcip_nrows}'
+        mcip_domain  = f'set BTRIM = {self.mcip_btrim}\n'
+        mcip_domain += f'set X0    =  {self.mcip_x0}\n'
+        mcip_domain += f'set Y0    =  {self.mcip_y0}\n'
+        mcip_domain += f'set NCOLS =  {self.mcip_ncols}\n'
+        mcip_domain += f'set NROWS =  {self.mcip_nrows}\n'
         utils.write_to_template(run_mcip_path, mcip_domain, id='%DOMAIN%')
 
         if self.verbose:
-            print('Done writing MCIP run script!\n')
+            print('Wrote MCIP run script to\n{run_mcip_path}')
 
         ## RUN MCIP
         if not setup_only:
@@ -182,7 +182,7 @@ class CMAQModel:
             simstart = datetime.datetime.now()
             if self.verbose:
                 print('Starting MCIP at: ' + str(simstart))
-                sys.stdout.flush()
+                # sys.stdout.flush()
             os.system(f'sbatch --requeue {self.MCIP_SCRIPTS}/run_mcip_{self.mcip_appl}.csh')
             # Sleep until the run_mcip_{self.appl}.log file exists
             while not os.path.exists(f'{self.MCIP_SCRIPTS}/run_mcip_{self.mcip_appl}.log'):
@@ -196,7 +196,7 @@ class CMAQModel:
                     mcip_sim = self.finish_check('mcip')
             elapsed = datetime.datetime.now() - simstart
             if self.verbose:
-                print(f'MCIP ran in: {utils.strfdelta(elapsed)}')
+                print(f'MCIP ran in: {utils.strfdelta(elapsed)}\n')
         return True
 
     def run_mcip_multiday(self, metfile_dir=None, metfile_list=[], geo_file='geo_em.d01.nc', t_step=60):
