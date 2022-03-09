@@ -641,6 +641,8 @@ class CMAQModel:
         ## RUN CCTM
         if not setup_only:
             os.system(self.CMD_CCTM)
+            # Give the log a few seconds to reset itself.
+            time.sleep(10)
             # Sleep until the run_cctm_{self.appl}.log file exists
             while not os.path.exists(f'{self.CCTM_SCRIPTS}/cctm_{self.appl}.log'):
                 time.sleep(1)
