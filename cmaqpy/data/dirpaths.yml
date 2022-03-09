@@ -13,8 +13,10 @@ directory_paths:
   LOC_RWC: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/emis/rwc'
   LOC_IN_PT: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/emis/inln'
   LOC_ERTAC: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/emis/inln/ptertac_smkfix'
+  LOC_SMK_MERGE_DATES: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/emis/smk_dates/2016'
   LOC_LAND: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/land'
   LOC_MCIP: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/mcip'
 file_paths:
   # GRIDDESC: '/share/mzhang/jas983/cmaq_data/CMAQ_v5.3.3/2016_12OTC2/mcip/GRIDDESC'
   GRIDDESC: '/share/mzhang/jas983/cmaq_data/CMAQ_v5.3.3/cmaqpy/cmaqpy/data/GRIDDESC2'
+  SECTORLIST: '/share/mzhang/jas983/emissions_data/nei_platform2016/v1/2016fh_16j/scripts/sectorlist_2016fh_02aug2019_v0'

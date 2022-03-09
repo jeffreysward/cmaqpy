@@ -80,6 +80,7 @@ class CMAQModel:
         self.LOC_RWC = dirpaths.get('LOC_RWC')
         self.LOC_IN_PT = dirpaths.get('LOC_IN_PT')
         self.LOC_ERTAC = dirpaths.get('LOC_ERTAC')
+        self.LOC_SMK_MERGE_DATES = dirpaths.get('LOC_SMK_MERGE_DATES')
         self.LOC_LAND = dirpaths.get('LOC_LAND')
         self.DIR_TEMPLATES = dirpaths.get('DIR_TEMPLATES')
         self.InMetDir = dirpaths.get('InMetDir')
@@ -87,9 +88,10 @@ class CMAQModel:
 
         # Define the locations for CMAQ inputs
         self.GRIDDESC = filepaths.get('GRIDDESC')
+        self.SECTORLIST = filepaths.get('SECTORLIST')
 
         # Define the names of the CMAQ output files
-        #### Maybe use this in the future
+        #### Maybe use this in the future ####
 
         # Define linux command aliai
         self.CMD_LN = 'ln -sf %s %s'
@@ -155,7 +157,7 @@ class CMAQModel:
                 mcip_met += f'$InMetDir/{metfile} \\\n'
             else:
                 mcip_met += f'$InMetDir/{metfile} )\n'
-        mcip_met += f'set IfGeo      = "F"\n'
+        mcip_met += f'set IfGeo      = "T"\n'
         mcip_met += f'set InGeoFile  = {self.InGeoDir}/{geo_file}\n'
         utils.write_to_template(run_mcip_path, mcip_met, id='%MET%')
 
@@ -174,7 +176,7 @@ class CMAQModel:
         utils.write_to_template(run_mcip_path, mcip_domain, id='%DOMAIN%')
 
         if self.verbose:
-            print('Wrote MCIP run script to\n{run_mcip_path}')
+            print(f'Wrote MCIP run script to\n{run_mcip_path}')
 
         ## RUN MCIP
         if not setup_only:
@@ -496,6 +498,11 @@ class CMAQModel:
         lcoal_cmv_c1c2_12_stk_file = f'{self.LOC_IN_PT}/cmv_c1c2_12/stack_groups_cmv_c1c2_12_*'
         cmd = cmd + '; ' + self.CMD_LN % (lcoal_cmv_c1c2_12_stk_file, f'{self.CCTM_PT}/stack_groups/')
         cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (lcoal_cmv_c1c2_12_stk_file)
+        
+        # Link sector list and smk_merge dates to $INPDIR/emis
+        # These are necessary because some of the point sectors use representative days
+        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_SMK_MERGE_DATES}/smk_merge_dates_{date.strftime("%Y%m")}*', f'{self.CCTM_INPDIR}/emis')
+        cmd = cmd + '; ' + self.CMD_LN % (f'{self.SECTORLIST}', f'{self.CCTM_INPDIR}/emis')
 
         # Link files for emissions scaling and sea spray to $INPDIR/land
         utils.make_dirs(f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic')
@@ -503,6 +510,7 @@ class CMAQModel:
             local_festc_file = f'{self.LOC_LAND}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_time20*{date.strftime("%y%m%d")}*'
             cmd = cmd + '; ' + self.CMD_LN % (local_festc_file, f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic/')
             cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_festc_file)
+        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_soil.12otc2.ncf', f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic/')
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/12US1_surf.12otc2.ncf', f'{self.CCTM_LAND}/')
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/beld41_feb2017_waterfix_envcan_12US2.12OTC2.ncf', f'{self.CCTM_LAND}/')
         
@@ -511,7 +519,9 @@ class CMAQModel:
         
         # Run the link commands
         os.system(cmd)
-        
+
+        # Remove broken links from the input dir
+        os.system(f'find {self.CCTM_INPDIR} -xtype l -delete')    
     
     def run_cctm(self, delete_existing_output='TRUE', new_sim='FALSE', tstep='010000', cctm_hours=24, n_procs=16, run_hours=24, setup_only=False):
         """

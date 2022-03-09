@@ -303,13 +303,41 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
   setenv STK_GRPS_009 $IN_PTpath/stack_groups/stack_groups_cmv_c1c2_12_${STKCASEG}.ncf
 
   # Emission Rates for Inline Point Sources
-  setenv STK_EMIS_001 $IN_PTpath/inln_mole_ptnonertac_${YYYYMMDD}_12US2_cmaq_cb6_2016fh_16j.ncf
+  #--> Create a link for representative date emissions sectors: othpt, ptnonipm, pt_oilgas 
+  #--> NOTE: this is the how NEI processes emissions, so you need the sectorlist file from one of the NEI platforms
+  set sectorlist = $IN_PTpath/../sectorlist_2016fh_02aug2019_v0
+  set reffile = $IN_PTpath/../smk_merge_dates_${YYYYMM}.txt
+
+  if ( $DD == '08' ) then
+     @ gline = 8 + 1
+  else if ( $DD == '09' ) then
+     @ gline = 9 + 1
+  else
+     @ gline  =  $DD + 1
+  endif
+
+  set intable = `head -$gline $reffile | tail -1`
+  set Date     = `echo $intable[1] | cut -d, -f1`
+  set aveday_N = `echo $intable[2] | cut -d, -f1`
+  set aveday_Y = `echo $intable[3] | cut -d, -f1`
+  set mwdss_N  = `echo $intable[4] | cut -d, -f1`
+  set mwdss_Y  = `echo $intable[5] | cut -d, -f1`
+  set week_N   = `echo $intable[6] | cut -d, -f1`
+  set week_Y   = `echo $intable[7] | cut -d, -f1`
+  set all      = `echo $intable[8] | cut -d, -f1`
+  echo $Date $aveday_N $aveday_Y $mwdss_N $mwdss_Y 
+  echo $week_N $week_Y $all
+
+#   setenv STK_EMIS_001 $IN_PTpath/inln_mole_ptnonertac_${YYYYMMDD}_12US2_cmaq_cb6_2016fh_16j.ncf
+  setenv STK_EMIS_001 $IN_PTpath/inln_mole_ptnonertac_${mwdss_Y}_${STKCASEE}.ncf
   setenv STK_EMIS_002 $IN_PTpath/inln_mole_ptertac_smkfix_${YYYYMMDD}_12US2_cmaq_cb6_2016fh_16j.ncf
-  setenv STK_EMIS_003 $IN_PTpath/inln_mole_othpt_${YYYYMMDD}_${STKCASEE}.ncf
+#   setenv STK_EMIS_003 $IN_PTpath/inln_mole_othpt_${YYYYMMDD}_${STKCASEE}.ncf
+  setenv STK_EMIS_003 $IN_PTpath/inln_mole_othpt_${mwdss_N}_${STKCASEE}.ncf  # Modeled using representative days
   setenv STK_EMIS_004 $IN_PTpath/inln_mole_ptagfire_${YYYYMMDD}_${STKCASEE}.ncf
   setenv STK_EMIS_005 $IN_PTpath/inln_mole_ptfire_${YYYYMMDD}_${STKCASEE}.ncf
   setenv STK_EMIS_006 $IN_PTpath/inln_mole_ptfire_othna_${YYYYMMDD}_${STKCASEE}.ncf
-  setenv STK_EMIS_007 $IN_PTpath/inln_mole_pt_oilgas_${YYYYMMDD}_${STKCASEE}.ncf
+#   setenv STK_EMIS_007 $IN_PTpath/inln_mole_pt_oilgas_${YYYYMMDD}_${STKCASEE}.ncf
+  setenv STK_EMIS_007 $IN_PTpath/inln_mole_pt_oilgas_${mwdss_Y}_${STKCASEE}.ncf  # Modeled using representative days
   setenv STK_EMIS_008 $IN_PTpath/inln_mole_cmv_c3_12_${YYYYMMDD}_${STKCASEE}.ncf
   setenv STK_EMIS_009 $IN_PTpath/inln_mole_cmv_c1c2_12_${YYYYMMDD}_${STKCASEE}.ncf
 
