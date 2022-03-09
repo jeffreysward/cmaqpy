@@ -23,6 +23,6 @@ elif appl == '2016_4OTC2':
 cmaq_sim = CMAQModel(start_datetime, end_datetime, appl, coord_name, grid_name, new_mcip=True, verbose=True)
 # Call the "run_cctm" method
 if appl == '2016_12OTC2':
-    cmaq_sim.run_cctm(delete_existing_output='TRUE', new_sim='FALSE', tstep='010000', cctm_hours=24, n_procs=16, run_hours=24, setup_only=False)
+    cmaq_sim.run_cctm(delete_existing_output='TRUE', new_sim='FALSE', tstep='010000', cctm_hours=24, n_procs=8, run_hours=24, setup_only=False)
 elif appl == '2016_4OTC2':
-    cmaq_sim.run_cctm(delete_existing_output='TRUE', new_sim='FALSE', tstep='010000', cctm_hours=24, n_procs=16, run_hours=24, setup_only=False)
+    cmaq_sim.run_cctm(delete_existing_output='TRUE', new_sim='FALSE', tstep='010000', cctm_hours=24, n_procs=8, run_hours=24, setup_only=False)

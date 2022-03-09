@@ -390,6 +390,15 @@ class CMAQModel:
         # Make a list of the start dates for date-specific inputs
         start_datetimes_lst = [single_date for single_date in (self.start_datetime + datetime.timedelta(n) for n in range(self.delt.days))]
 
+        # Make lists of representative days
+        # These are necessary because some of the point sectors use representative days
+        cmd = ''
+        for date in start_datetimes_lst:
+            cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_SMK_MERGE_DATES}/smk_merge_dates_{date.strftime("%Y%m")}*', f'{self.CCTM_INPDIR}/emis')
+        os.system(cmd)
+        mwdss_N_lst = utils.get_rep_dates(f'{self.LOC_SMK_MERGE_DATES}', start_datetimes_lst, date_type='  mwdss_N')
+        mwdss_Y_lst = utils.get_rep_dates(f'{self.LOC_SMK_MERGE_DATES}', start_datetimes_lst, date_type='  mwdss_Y')
+
         # Link the GRIDDESC to $INPDIR
         cmd = self.CMD_LN % (self.GRIDDESC, f'{self.CCTM_INPDIR}/')
         cmd_gunzip = self.CMD_GUNZIP % (self.GRIDDESC)
@@ -442,8 +451,8 @@ class CMAQModel:
         local_ptertac_stk_file = f'{self.LOC_ERTAC}/stack_groups_ptertac_*'
         cmd = cmd + '; ' + self.CMD_LN % (local_ptertac_stk_file, f'{self.CCTM_PT}/stack_groups/')
         cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptertac_stk_file)
-        # Link the othpt sector
-        for date in start_datetimes_lst:
+        # Link the othpt sector (requires representative days, so we use mwdss_N_lst date list)
+        for date in mwdss_N_lst:
             local_othpt_file = f'{self.LOC_IN_PT}/othpt/inln_mole_othpt_20*{date.strftime("%y%m%d")}*'
             cmd = cmd + '; ' + self.CMD_LN % (local_othpt_file, f'{self.CCTM_PT}/')
             cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_othpt_file)
@@ -474,8 +483,8 @@ class CMAQModel:
             local_ptfire_othna_stk_file = f'{self.LOC_IN_PT}/ptfire_othna/stack_groups_ptfire_othna_20*{date.strftime("%y%m%d")}*'
             cmd = cmd + '; ' + self.CMD_LN % (local_ptfire_othna_stk_file, f'{self.CCTM_PT}/stack_groups/')
             cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptfire_othna_stk_file)
-        # Link the pt_oilgas sector
-        for date in start_datetimes_lst:
+        # Link the pt_oilgas sector (requires representative days, so we use the mwdss_Y_lst date list)
+        for date in mwdss_Y_lst:
             local_pt_oilgas_file = f'{self.LOC_IN_PT}/pt_oilgas/inln_mole_pt_oilgas_20*{date.strftime("%y%m%d")}*'
             cmd = cmd + '; ' + self.CMD_LN % (local_pt_oilgas_file, f'{self.CCTM_PT}/')
             cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_pt_oilgas_file)
@@ -499,9 +508,7 @@ class CMAQModel:
         cmd = cmd + '; ' + self.CMD_LN % (lcoal_cmv_c1c2_12_stk_file, f'{self.CCTM_PT}/stack_groups/')
         cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (lcoal_cmv_c1c2_12_stk_file)
         
-        # Link sector list and smk_merge dates to $INPDIR/emis
-        # These are necessary because some of the point sectors use representative days
-        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_SMK_MERGE_DATES}/smk_merge_dates_{date.strftime("%Y%m")}*', f'{self.CCTM_INPDIR}/emis')
+        # Link sector list to $INPDIR/emis
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.SECTORLIST}', f'{self.CCTM_INPDIR}/emis')
 
         # Link files for emissions scaling and sea spray to $INPDIR/land

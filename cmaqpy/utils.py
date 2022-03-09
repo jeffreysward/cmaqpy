@@ -164,3 +164,34 @@ def make_dirs(directory):
     """
     if not os.path.exists(directory):
         os.makedirs(directory, 0o755)
+
+
+def get_rep_dates(smk_dates_dir, dates_list, date_type='  mwdss_N'):
+    """
+    Get representative dates from the files produced by smkmerge.
+
+    Make sure that you include the correct white space in the date_type
+    parameter. The options are: 
+    ' aveday_N', ' aveday_Y', 
+    '  mwdss_N', '  mwdss_Y', 
+    '   week_N', '   week_Y', 
+    '      all'
+
+    NOTE: this woudld be slightly faster if I didn't reopen the file each time, 
+    but it's such a small fraction of the time for CCTM that I'm not
+    going to worry about it now.
+    """
+    rep_days = []
+    # Loop through each day in the input list and append the respective representative day to the list
+    for date in dates_list:
+        d_str = date.strftime("%Y%m")
+        smk_dates = pd.read_csv(f'{smk_dates_dir}/smk_merge_dates_{d_str}.txt', index_col=0, parse_dates=[0], infer_datetime_format=True)
+        s = smk_dates[date_type]
+        rep_days.append(s[date])
+
+    # Remove duplicates in the represenatitive days 
+    result = [] 
+    [result.append(x) for x in rep_days if x not in result] 
+    
+    return result
+    

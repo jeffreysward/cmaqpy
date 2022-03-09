@@ -189,6 +189,7 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
   set YYYYMMDD = `date -ud "${TODAYG}" +%Y%m%d` #> Convert YYYY-MM-DD to YYYYMMDD
   set YYYYMM = `date -ud "${TODAYG}" +%Y%m`     #> Convert YYYY-MM-DD to YYYYMM
   set YYMMDD = `date -ud "${TODAYG}" +%y%m%d`   #> Convert YYYY-MM-DD to YYMMDD
+  set DD = `date -ud "${TODAYG}" +%d`           #> Get only the day
   set YYYYJJJ = $TODAYJ
 
   #> Calculate Yesterday's Date
@@ -313,7 +314,7 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
   else if ( $DD == '09' ) then
      @ gline = 9 + 1
   else
-     @ gline  =  $DD + 1
+     @ gline = $DD + 1
   endif
 
   set intable = `head -$gline $reffile | tail -1`
@@ -328,8 +329,7 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
   echo $Date $aveday_N $aveday_Y $mwdss_N $mwdss_Y 
   echo $week_N $week_Y $all
 
-#   setenv STK_EMIS_001 $IN_PTpath/inln_mole_ptnonertac_${YYYYMMDD}_12US2_cmaq_cb6_2016fh_16j.ncf
-  setenv STK_EMIS_001 $IN_PTpath/inln_mole_ptnonertac_${mwdss_Y}_${STKCASEE}.ncf
+  setenv STK_EMIS_001 $IN_PTpath/inln_mole_ptnonertac_${YYYYMMDD}_12US2_cmaq_cb6_2016fh_16j.ncf
   setenv STK_EMIS_002 $IN_PTpath/inln_mole_ptertac_smkfix_${YYYYMMDD}_12US2_cmaq_cb6_2016fh_16j.ncf
 #   setenv STK_EMIS_003 $IN_PTpath/inln_mole_othpt_${YYYYMMDD}_${STKCASEE}.ncf
   setenv STK_EMIS_003 $IN_PTpath/inln_mole_othpt_${mwdss_N}_${STKCASEE}.ncf  # Modeled using representative days
