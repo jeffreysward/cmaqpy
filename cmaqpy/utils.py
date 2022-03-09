@@ -6,6 +6,7 @@ Known Issues/Wishlist:
 """
 import datetime
 import os
+import pandas as pd
 import string
 from shutil import rmtree
 
@@ -194,4 +195,3 @@ def get_rep_dates(smk_dates_dir, dates_list, date_type='  mwdss_N'):
     [result.append(x) for x in rep_days if x not in result] 
     
     return result
-    
