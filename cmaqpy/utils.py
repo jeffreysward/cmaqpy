@@ -192,6 +192,9 @@ def get_rep_dates(smk_dates_dir, dates_list, date_type='  mwdss_N'):
 
     # Remove duplicates in the represenatitive days 
     result = [] 
-    [result.append(x) for x in rep_days if x not in result] 
+    [result.append(x) for x in rep_days if x not in result]
+
+    # Convert to datetimes
+    result = pd.to_datetime(result, format='%Y%m%d') 
     
     return result

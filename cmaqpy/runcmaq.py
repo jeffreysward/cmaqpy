@@ -392,7 +392,8 @@ class CMAQModel:
 
         # Make lists of representative days
         # These are necessary because some of the point sectors use representative days
-        cmd = ''
+        utils.make_dirs(f'{self.CCTM_INPDIR}/emis')
+        cmd = 'echo "Starting to link files..."'
         for date in start_datetimes_lst:
             cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_SMK_MERGE_DATES}/smk_merge_dates_{date.strftime("%Y%m")}*', f'{self.CCTM_INPDIR}/emis')
         os.system(cmd)
