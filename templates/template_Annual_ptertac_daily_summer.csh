@@ -1,14 +1,7 @@
 #!/bin/csh -f
 #SBATCH -J ptertac_summer		# Job name
-#SBATCH -o /share/mzhang/jas983/emissions_data/nei_platform2016/v1/2016fh_16j/intermed/ptertac/logs/out_ptertac_summer.%j		# Name of stdout output file (%j expands to jobId)
-#SBATCH --nodes=1		# Total number of nodes requested 
-#SBATCH --ntasks=1		# Total number of tasks to be configured for. 
-#SBATCH --tasks-per-node=1	# sets number of tasks to run on each node. 
-#SBATCH --cpus-per-task=1	# sets number of cpus needed by each task (if task is "make -j3" number should be 3).
-#SBATCH --get-user-env		# tells sbatch to retrieve the users login environment. 
-#SBATCH -t 24:00:00		# Run time (hh:mm:ss) 
-#SBATCH --mem=100000M		# memory required per node
-#SBATCH --partition=default_cpu	# Which queue it should run on. 
+%SLURM%
+#SBATCH -o /share/mzhang/jas983/emissions_data/nei_platform2016/v1/2016fh_16j/intermed/ptertac/logs/out_ptertac_summer.%j		# Name of stdout output file (%j expands to jobId) 
 
 limit stacksize unlimited
 limit memoryuse unlimited

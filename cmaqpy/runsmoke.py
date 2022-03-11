@@ -48,7 +48,7 @@ class SMOKEModel:
         self.CMD_MV = 'mv %s %s'
         self.CMD_RM = 'rm %s'
 
-    def run_sector(self, type='onetime', season='summer', setup_only=False):
+    def run_sector(self, type='onetime', season='summer', n_procs=1, gb_mem=100, run_hours=12, setup_only=False):
         """
         Run the onetime step for a point sector.
         """
@@ -63,6 +63,16 @@ class SMOKEModel:
             print(f'Type "{type}" not recognized. Please use "onetime" or "daily"')
             raise ValueError
         os.system(cmd)
+
+        # Write slurm info
+        slurm_info  = f'#SBATCH --ntasks={n_procs}		# Total number of tasks\n' 
+        slurm_info += f'#SBATCH --tasks-per-node={n_procs}	# sets number of tasks to run on each node\n' 
+        slurm_info += f'#SBATCH --cpus-per-task=1	# sets number of cpus needed by each task (if task is "make -j3" number should be 3)\n'
+        slurm_info += f'#SBATCH --get-user-env		# tells sbatch to retrieve the users login environment\n'
+        slurm_info += f'#SBATCH -t {run_hours}:00:00		# Run time (hh:mm:ss)\n'
+        slurm_info += f'#SBATCH --mem={gb_mem}000M		# memory required per node\n'
+        slurm_info += f'#SBATCH --partition=default_cpu	# Which queue it should run on\n'
+        utils.write_to_template(run_script_path, slurm_info, id='%SLURM%')
 
         # Write directory definition info
         dir_info = f'source {self.NEI_CASESCRIPTS}/directory_definitions.csh'
