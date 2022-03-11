@@ -531,7 +531,7 @@ class CMAQModel:
         # Remove broken links from the input dir
         os.system(f'find {self.CCTM_INPDIR} -xtype l -delete')    
     
-    def run_cctm(self, delete_existing_output='TRUE', new_sim='FALSE', tstep='010000', cctm_hours=24, n_procs=16, run_hours=24, setup_only=False):
+    def run_cctm(self, delete_existing_output='TRUE', new_sim='FALSE', tstep='010000', cctm_hours=24, n_procs=16, gb_mem=50, run_hours=24, setup_only=False):
         """
         Setup and run CCTM, CMAQ's chemical transport model.
         """
@@ -629,7 +629,7 @@ class CMAQModel:
         cctm_sub += f'#SBATCH --cpus-per-task=1       # sets number of cpus needed by each task (if task is "make -j3" number should be 3).\n'
         cctm_sub += f'#SBATCH --get-user-env          # tells sbatch to retrieve the users login environment. \n'
         cctm_sub += f'#SBATCH -t {run_hours}:00:00             # Run time (hh:mm:ss)\n'
-        cctm_sub += f'#SBATCH --mem=20000M            # memory required per node\n'
+        cctm_sub += f'#SBATCH --mem={gb_mem}000M            # memory required per node\n'
         cctm_sub += f'#SBATCH --partition=default_cpu # Which queue it should run on.\n'
         cctm_sub += f'\n'
         cctm_sub += f'{self.CCTM_SCRIPTS}/run_cctm.csh >&! {self.CCTM_SCRIPTS}/cctm_{self.appl}.log\n'

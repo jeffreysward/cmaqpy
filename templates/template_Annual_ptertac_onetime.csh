@@ -23,7 +23,7 @@ endif
 #  by every sector in the case
 #  Anything defined in directory_definitions can be overridden here 
 #  if desired
-source ../directory_definitions.csh
+%DIR_DEF%
 
 ## Months for emissions processing, and spinup duration
 #  In the EPA emissions modeling platforms, the only sectors that use
