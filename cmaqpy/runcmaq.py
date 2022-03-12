@@ -446,7 +446,7 @@ class CMAQModel:
         cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptnonertac_stk_file)
         # Link the ptertac sector
         for date in start_datetimes_lst:
-            local_ptertac_file = f'{self.LOC_ERTAC}/inln_mole_ptertac_smkfix_20*{date.strftime("%y%m%d")}*'
+            local_ptertac_file = f'{self.LOC_ERTAC}/inln_mole_ptertac_20*{date.strftime("%y%m%d")}*'
             cmd = cmd + '; ' + self.CMD_LN % (local_ptertac_file, f'{self.CCTM_PT}/')
             cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptertac_file)
         local_ptertac_stk_file = f'{self.LOC_ERTAC}/stack_groups_ptertac_*'

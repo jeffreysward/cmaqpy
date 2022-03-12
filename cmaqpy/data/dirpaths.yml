@@ -12,7 +12,7 @@ directory_paths:
   LOC_GRIDDED: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/emis/emis2d_anthro_bio_norwc_ertac_hourly.apt_fix'
   LOC_RWC: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/emis/rwc'
   LOC_IN_PT: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/emis/inln'
-  LOC_ERTAC: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/emis/inln/ptertac_smkfix'
+  LOC_ERTAC: '/share/mzhang/jas983/emissions_data/nei_platform2016/v1/2016fh_16j/smoke_out/2016fh_16j/12OTC2/cmaq_cb6/ptertac'
   LOC_SMK_MERGE_DATES: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/emis/smk_dates/2016'
   LOC_LAND: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/land'
   LOC_MCIP: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/mcip'

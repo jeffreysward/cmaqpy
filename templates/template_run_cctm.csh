@@ -294,7 +294,7 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
 
   # Time-Independent Stack Parameters for Inline Point Sources
   setenv STK_GRPS_001 $IN_PTpath/stack_groups/stack_groups_ptnonertac_12US2_2016fh_16j.ncf
-  setenv STK_GRPS_002 $IN_PTpath/stack_groups/stack_groups_ptertac_smkfix_12US2_2016fh_16j.ncf
+  setenv STK_GRPS_002 $IN_PTpath/stack_groups/stack_groups_ptertac_${GRID_NAME}_2016fh_16j.ncf
   setenv STK_GRPS_003 $IN_PTpath/stack_groups/stack_groups_othpt_${STKCASEG}.ncf
   setenv STK_GRPS_004 $IN_PTpath/stack_groups/stack_groups_ptagfire_${YYYYMMDD}_${STKCASEG}.ncf
   setenv STK_GRPS_005 $IN_PTpath/stack_groups/stack_groups_ptfire_${YYYYMMDD}_${STKCASEG}.ncf
@@ -330,7 +330,7 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
   echo $week_N $week_Y $all
 
   setenv STK_EMIS_001 $IN_PTpath/inln_mole_ptnonertac_${YYYYMMDD}_12US2_cmaq_cb6_2016fh_16j.ncf
-  setenv STK_EMIS_002 $IN_PTpath/inln_mole_ptertac_smkfix_${YYYYMMDD}_12US2_cmaq_cb6_2016fh_16j.ncf
+  setenv STK_EMIS_002 $IN_PTpath/inln_mole_ptertac_${YYYYMMDD}_${GRID_NAME}_cmaq_cb6_2016fh_16j.ncf
 #   setenv STK_EMIS_003 $IN_PTpath/inln_mole_othpt_${YYYYMMDD}_${STKCASEE}.ncf
   setenv STK_EMIS_003 $IN_PTpath/inln_mole_othpt_${mwdss_N}_${STKCASEE}.ncf  # Modeled using representative days
   setenv STK_EMIS_004 $IN_PTpath/inln_mole_ptagfire_${YYYYMMDD}_${STKCASEE}.ncf
