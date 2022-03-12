@@ -5,7 +5,7 @@ directory_paths:
   CMAQ_DATA: '/home/jas983/models/cmaq/CMAQ_v5.3.3/data'
   DIR_TEMPLATES: '/share/mzhang/jas983/cmaq_data/CMAQ_v5.3.3/cmaqpy/templates'
   InMetDir: '/share/mzhang/jas983/wrf_data/met4ene/wrfout/ARW/2016-08-05_8mp4lw2sw2lsm5pbl3cu'
-  InGeoDir: '/share/mzhang/jas983/wrf_data/data/domain'
+  InGeoDir: '/share/mzhang/jas983/wrf_data/data/domain/otc'
   NEI_HOME: '/share/mzhang/jas983/emissions_data/nei_platform2016/v1'
   LOC_IC: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/output_CCTM_v531_pgi_2016fh_cb6_16j.ertac_hourly.new.aptfix.smkfix.epamcip'
   LOC_BC: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/bcon.2016/12OTC2'
