@@ -15,7 +15,7 @@ directory_paths:
   LOC_ERTAC: '/share/mzhang/jas983/emissions_data/nei_platform2016/v1/2016fh_16j/smoke_out/2016fh_16j/12OTC2/cmaq_cb6/ptertac'
   LOC_SMK_MERGE_DATES: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/emis/smk_dates/2016'
   LOC_LAND: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/land'
-  LOC_MCIP: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/mcip'
+  LOC_MCIP: '/models/cmaq/CMAQ_v5.3.3/data/2016_12OTC2/mcip'
   ERTAC_HOME: '/home/jas983/models/ertac_egu'
 file_paths:
   # GRIDDESC: '/share/mzhang/jas983/cmaq_data/CMAQ_v5.3.3/2016_12OTC2/mcip/GRIDDESC'

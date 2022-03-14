@@ -640,6 +640,9 @@ class CMAQModel:
         
         ## RUN CCTM
         if not setup_only:
+            # Remove logs from previous runs
+            os.system(self.CMD_RM % (f'{self.CCTM_SCRIPTS}/CTM_LOG*'))
+            # Submit CCTM to Slurm
             os.system(self.CMD_CCTM)
             # Give the log a few seconds to reset itself.
             time.sleep(10)
