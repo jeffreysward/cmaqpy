@@ -74,6 +74,7 @@ class CMAQModel:
         self.CCTM_RWC = f'{self.CCTM_INPDIR}/emis/gridded_area/rwc'
         self.CCTM_PT = f'{self.CCTM_INPDIR}/emis/inln_point'
         self.CCTM_LAND = f'{self.CCTM_INPDIR}/land'
+        self.POST = f'{self.CMAQ_DATA}/{self.appl}/post'
         self.LOC_IC = dirpaths.get('LOC_IC')
         self.LOC_BC = dirpaths.get('LOC_BC')
         self.LOC_GRIDDED = dirpaths.get('LOC_GRIDDED')
