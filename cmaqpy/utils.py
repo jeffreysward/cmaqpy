@@ -198,3 +198,10 @@ def get_rep_dates(smk_dates_dir, dates_list, date_type='  mwdss_N'):
     result = pd.to_datetime(result, format='%Y%m%d') 
     
     return result
+
+
+def get_map_proj(ds):
+    """
+    Extracts information about the CMAQ grid from an output file dataset.
+    """
+    pass
