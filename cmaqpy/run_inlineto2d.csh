@@ -11,10 +11,10 @@
 #SBATCH --mem=20000M		# memory required per node
 #SBATCH --partition=default_cpu	# Which queue it should run on.
 
-setenv YYYYMMDD 20160813
+setenv YYYYMMDD 20160806
 
 setenv NEI_DIR /share/mzhang/jas983/emissions_data/nei_platform2016/v1
-setenv SMOKE_PTERTAC /share/mzhang/jas983/emissions_data/nei_platform2016/v1/2016fh_16j/smoke_out/2016fh_16j/12OTC2/cmaq_cb6/ptertac_s0
+setenv SMOKE_PTERTAC /share/mzhang/jas983/emissions_data/nei_platform2016/v1/2016fh_16j/smoke_out/2016fh_16j/12OTC2/cmaq_cb6/ptertac
 setenv INLN $SMOKE_PTERTAC/inln_mole_ptertac_${YYYYMMDD}_12OTC2_cmaq_cb6_2016fh_16j.ncf
 setenv STACK_GROUPS $SMOKE_PTERTAC/stack_groups_ptertac_12OTC2_2016fh_16j.ncf
 setenv OUTFILE $SMOKE_PTERTAC/2d_mole_ptertac_${YYYYMMDD}_12OTC2_cmaq_cb6_2016fh_16j.ncf
@@ -26,4 +26,3 @@ setenv PROMPTFLAG N
 
 rm $LOGFILE
 $SMK_HOME/subsys/smoke/Linux2_x86_64gfort/inlineto2d
-

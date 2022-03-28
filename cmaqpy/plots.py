@@ -17,7 +17,8 @@ def pollution_plot(da, vmin=0, vmax=12, cmap=cm.get_cmap('YlOrBr'),
     ax = m.plots.draw_map(states=True, resolution='10m',  linewidth=0.5, figsize=(15,7), extent=extent, subplot_kw={'projection': ccrs.PlateCarree()})
     p = da.plot(x='longitude', y='latitude', ax=ax, robust=True, 
                 vmin=vmin, vmax=vmax, cmap=cmap,
-                cbar_kwargs={'label': cbar_label},
+                cbar_kwargs={'label': cbar_label, 
+                             'extend': 'neither'},
                 )
     if titlestr is not None:
         ax.set_title(titlestr)
@@ -43,11 +44,11 @@ def conc_compare(da1, da2, extent=None,
     # f.axes.append(ax2)
     da1.plot(x='longitude', y='latitude', ax=ax1, robust=True, 
             vmin=vmin1, vmax=vmax1, cmap=cmap1,
-            cbar_kwargs={'label': cbar_label1},
+            cbar_kwargs={'label': cbar_label1, 'extend': 'neither'},
             )
     da2.plot(x='longitude', y='latitude', ax=ax2, robust=True, 
             vmin=vmin2, vmax=vmax2, cmap=cmap2,
-            cbar_kwargs={'label': cbar_label2},
+            cbar_kwargs={'label': cbar_label2, 'extend': 'neither'},
             )
 
     if titlestr1 is not None:
@@ -62,7 +63,33 @@ def conc_compare(da1, da2, extent=None,
         f2.show()
 
 
-def gen_change(gen_idx1, gen_idx2, gen_df1, gen_df2, column_names=['Base Case', 'w/ Renewables'],
+def prof_change(gen_idx, gen_df1, gen_df2, date=None, column_names=['Base Case', 'w/ Renewables'],
+               figsize=(7,3), colors=['purple','orange'], linewidth=2, linestyles=['-','-.'], 
+               titlestr1='', ylabelstr='Power (MW)', 
+               savefig=False, outfile_pfix='../cmaqpy/data/plots/gen_profs_'):
+    """
+    Plots changes in generation or emissions profiles for a user-specified unit.
+    """
+    if date is None:
+        change_df1 = pd.concat([gen_df1.iloc[gen_idx,5:], gen_df2.iloc[gen_idx,5:]], axis=1)
+    else:
+        change_df1 = pd.concat([gen_df1.loc[gen_idx,pd.Timestamp(f'{date} 00'):pd.Timestamp(f'{date} 23')], gen_df2.loc[gen_idx,pd.Timestamp(f'{date} 00'):pd.Timestamp(f'{date} 23')]], axis=1)
+    change_df1.columns = column_names
+
+    f = plt.figure(figsize=figsize)
+    ax1 = f.gca()
+    change_df1.plot(color=colors, linewidth=linewidth, style=linestyles, ax=ax1)
+
+    ax1.legend(loc='lower center', bbox_to_anchor=(0.5, -0.5), ncol=2)
+    ax1.set_title(f'{gen_df1["NYISO Name"][gen_idx]} {titlestr1}')
+    ax1.set_ylabel(ylabelstr)
+    if savefig:
+        plt.savefig(f'{outfile_pfix}{gen_df1["NYISO Name"][gen_idx]}.png', dpi=300, transparent=True, bbox_inches='tight')
+    else:
+        plt.show()
+
+
+def prof_compare(gen_idx1, gen_idx2, gen_df1, gen_df2, date=None, column_names=['Base Case', 'w/ Renewables'],
                figsize=(7,7), colors=['purple','orange'], linewidth=2, linestyles=['-','-.'], 
                titlestr1='(baseload/load following)', titlestr2='(peaking)', ylabelstr='Power (MW)', 
                savefig=False, outfile_pfix='../cmaqpy/data/plots/gen_profs_'):
@@ -70,9 +97,15 @@ def gen_change(gen_idx1, gen_idx2, gen_df1, gen_df2, column_names=['Base Case', 
     """
     Compares changes in generation or emissions for two user-specified units.
     """
-    change_df1 = pd.concat([gen_df1.iloc[gen_idx1,5:], gen_df2.iloc[gen_idx1,5:]], axis=1)
+    if date is None:
+        change_df1 = pd.concat([gen_df1.iloc[gen_idx1,5:], gen_df2.iloc[gen_idx1,5:]], axis=1)
+    else:
+        change_df1 = pd.concat([gen_df1.loc[gen_idx1,pd.Timestamp(f'{date} 00'):pd.Timestamp(f'{date} 23')], gen_df2.loc[gen_idx1,pd.Timestamp(f'{date} 00'):pd.Timestamp(f'{date} 23')]], axis=1)
     change_df1.columns = column_names
-    change_df2 = pd.concat([gen_df1.iloc[gen_idx2,5:], gen_df2.iloc[gen_idx2,5:]], axis=1)
+    if date is None:
+        change_df2 = pd.concat([gen_df1.iloc[gen_idx2,5:], gen_df2.iloc[gen_idx2,5:]], axis=1)
+    else:
+        change_df2 = pd.concat([gen_df1.loc[gen_idx2,pd.Timestamp(f'{date} 00'):pd.Timestamp(f'{date} 23')], gen_df2.loc[gen_idx2,pd.Timestamp(f'{date} 00'):pd.Timestamp(f'{date} 23')]], axis=1)
     change_df2.columns = column_names
 
     _, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=figsize)
