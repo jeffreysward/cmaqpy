@@ -17,6 +17,8 @@ directory_paths:
   LOC_LAND: '/share/mzhang/jas983/emissions_data/2016v1/12OTC2/land'
   LOC_MCIP: '/home/jas983/models/cmaq/CMAQ_v5.3.3/data/2016_12OTC2/mcip'
   ERTAC_HOME: '/home/jas983/models/ertac_egu'
+  SMOKE_EXE: '/home/jas983/models/smoke/smokev4.7/subsys/smoke/Linux2_x86_64gfort_default'
+  IOAPI_EXE: '/home/jas983/models/smoke/smokev4.7/subsys/ioapi/Linux2_x86_64gfort'
 file_paths:
   # GRIDDESC: '/share/mzhang/jas983/cmaq_data/CMAQ_v5.3.3/2016_12OTC2/mcip/GRIDDESC'
   GRIDDESC: '/share/mzhang/jas983/cmaq_data/CMAQ_v5.3.3/cmaqpy/cmaqpy/data/GRIDDESC2'
