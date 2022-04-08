@@ -1,5 +1,7 @@
 #!/bin/csh -f
 
+%SLURM%
+
 # ======================= BCONv5.3.X Run Script ======================== 
 # Usage: run.bcon.csh >&! bcon.log &                                
 #

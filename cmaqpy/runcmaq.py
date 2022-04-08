@@ -100,8 +100,8 @@ class CMAQModel:
         self.CMD_MV = 'mv %s %s'
         self.CMD_RM = 'rm %s'
         self.CMD_GUNZIP = 'gunzip %s'
-        self.CMD_ICON = f'{self.ICON_SCRIPTS}/run_icon.csh >& {self.MCIP_SCRIPTS}/run_icon_{self.appl}.log'
-        self.CMD_BCON = f'{self.BCON_SCRIPTS}/run_bcon.csh >& {self.MCIP_SCRIPTS}/run_bcon_{self.appl}.log'
+        self.CMD_ICON = f'sbatch --requeue {self.ICON_SCRIPTS}/run_icon.csh'
+        self.CMD_BCON = f'sbatch --requeue {self.BCON_SCRIPTS}/run_bcon.csh'
         self.CMD_CCTM = f'sbatch --requeue {self.CCTM_SCRIPTS}/submit_cctm.csh'
 
     def run_mcip(self, mcip_start_datetime=None, mcip_end_datetime=None, metfile_list=[], geo_file='geo_em.d01.nc', t_step=60, run_hours=4, setup_only=False):
@@ -229,7 +229,7 @@ class CMAQModel:
             self.run_mcip(mcip_start_datetime=mcip_start_datetime, mcip_end_datetime=mcip_end_datetime, metfile_list=metfile_list, geo_file=geo_file, t_step=t_step, setup_only=False) 
         
 
-    def run_icon(self, type='regrid', coarse_grid_name='coarse', cctm_pfx='CCTM_CONC_v53_', setup_only=False):
+    def run_icon(self, type='regrid', coarse_grid_name='coarse', cctm_pfx='CCTM_CONC_v53_', run_hours=2, setup_only=False):
         """
         Setup and run ICON, which produces initial conditions for CMAQ.
         """
@@ -238,6 +238,19 @@ class CMAQModel:
         run_icon_path = f'{self.ICON_SCRIPTS}/run_icon.csh'
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_icon.csh', run_icon_path)
         os.system(cmd)
+
+        # Write Slurm info
+        icon_slurm =  f'#SBATCH -J icon_{self.appl}		# Job name\n'
+        icon_slurm += f'#SBATCH -o {self.ICON_SCRIPTS}/run_icon_{self.appl}.log\n'
+        icon_slurm += f'#SBATCH --nodes=1		# Total number of nodes requested\n' 
+        icon_slurm += f'#SBATCH --ntasks=1		# Total number of tasks to be configured for.\n' 
+        icon_slurm += f'#SBATCH --tasks-per-node=1	# sets number of tasks to run on each node.\n' 
+        icon_slurm += f'#SBATCH --cpus-per-task=1	# sets number of cpus needed by each task.\n'
+        icon_slurm += f'#SBATCH --get-user-env		# tells sbatch to retrieve the users login environment.\n' 
+        icon_slurm += f'#SBATCH -t {run_hours}:00:00		# Run time (hh:mm:ss)\n' 
+        icon_slurm += f'#SBATCH --mem=20000M		# memory required per node\n'
+        icon_slurm += f'#SBATCH --partition=default_cpu	# Which queue it should run on.\n'
+        utils.write_to_template(run_icon_path, icon_slurm, id='%SLURM%') 
 
         # Write ICON runtime info to the run script.
         icon_runtime = f'#> Source the config_cmaq file to set the run environment\n'
@@ -303,7 +316,7 @@ class CMAQModel:
                 print(f'ICON ran in: {utils.strfdelta(elapsed)}')
         return True
 
-    def run_bcon(self, type='regrid', coarse_grid_name='coarse', cctm_pfx='CCTM_CONC_v53_', setup_only=False):
+    def run_bcon(self, type='regrid', coarse_grid_name='coarse', cctm_pfx='CCTM_CONC_v53_', run_hours=2, setup_only=False):
         """
         Setup and run BCON, which produces boundary conditions for CMAQ.
         """
@@ -312,6 +325,19 @@ class CMAQModel:
         run_bcon_path = f'{self.BCON_SCRIPTS}/run_bcon.csh'
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_bcon.csh', run_bcon_path)
         os.system(cmd)
+
+        # Write Slurm info
+        bcon_slurm =  f'#SBATCH -J icon_{self.appl}		# Job name\n'
+        bcon_slurm += f'#SBATCH -o {self.BCON_SCRIPTS}/run_icon_{self.appl}.log\n'
+        bcon_slurm += f'#SBATCH --nodes=1		# Total number of nodes requested\n' 
+        bcon_slurm += f'#SBATCH --ntasks=1		# Total number of tasks to be configured for.\n' 
+        bcon_slurm += f'#SBATCH --tasks-per-node=1	# sets number of tasks to run on each node.\n' 
+        bcon_slurm += f'#SBATCH --cpus-per-task=1	# sets number of cpus needed by each task.\n'
+        bcon_slurm += f'#SBATCH --get-user-env		# tells sbatch to retrieve the users login environment.\n' 
+        bcon_slurm += f'#SBATCH -t {run_hours}:00:00		# Run time (hh:mm:ss)\n' 
+        bcon_slurm += f'#SBATCH --mem=20000M		# memory required per node\n'
+        bcon_slurm += f'#SBATCH --partition=default_cpu	# Which queue it should run on.\n'
+        utils.write_to_template(run_bcon_path, bcon_slurm, id='%SLURM%') 
 
         # Write BCON runtime info to the run script.
         bcon_runtime =  f'#> Source the config_cmaq file to set the run environment\n'

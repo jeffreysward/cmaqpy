@@ -1,5 +1,7 @@
 #!/bin/csh -f
 
+%SLURM%
+
 # ======================= ICONv5.3.X Run Script ========================
 # Usage: run.icon.csh >&! icon.log &                                   
 #
