@@ -6,7 +6,7 @@ import pandas as pd
 
 
 def pollution_plot(da, vmin=0, vmax=12, cmap=cm.get_cmap('YlOrBr'),
-                   extent=None, cbar_label='PM$_{2.5}$ ($\mu g/m^{3}$)', 
+                   extent=None, cbar_label='PM$_{2.5}$ ($\mu g/m^{3}$)', figsize=(15,7),
                    titlestr='Title', savefig=False, figpath='./pollution_plot.png'):
     """
     Creates a filled colormap across a user-defined section of the domain 
@@ -14,7 +14,7 @@ def pollution_plot(da, vmin=0, vmax=12, cmap=cm.get_cmap('YlOrBr'),
     """
     if extent is None:
         extent = [da.longitude.min(), da.longitude.max(), da.latitude.min(), da.latitude.max() - 2]
-    ax = m.plots.draw_map(states=True, resolution='10m',  linewidth=0.5, figsize=(15,7), extent=extent, subplot_kw={'projection': ccrs.PlateCarree()})
+    ax = m.plots.draw_map(states=True, resolution='10m',  linewidth=0.5, figsize=figsize, extent=extent, subplot_kw={'projection': ccrs.PlateCarree()})
     p = da.plot(x='longitude', y='latitude', ax=ax, robust=True, 
                 vmin=vmin, vmax=vmax, cmap=cmap,
                 cbar_kwargs={'label': cbar_label, 
@@ -23,7 +23,7 @@ def pollution_plot(da, vmin=0, vmax=12, cmap=cm.get_cmap('YlOrBr'),
     if titlestr is not None:
         ax.set_title(titlestr)
     if savefig:
-        plt.savefig(figpath)
+        plt.savefig(figpath, dpi=300, transparent=True, bbox_inches='tight')
     else:
         plt.show()
 

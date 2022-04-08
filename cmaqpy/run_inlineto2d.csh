@@ -11,7 +11,7 @@
 #SBATCH --mem=20000M		# memory required per node
 #SBATCH --partition=default_cpu	# Which queue it should run on.
 
-setenv YYYYMMDD 20160806
+setenv YYYYMMDD 20160812
 
 setenv NEI_DIR /share/mzhang/jas983/emissions_data/nei_platform2016/v1
 setenv SMOKE_PTERTAC /share/mzhang/jas983/emissions_data/nei_platform2016/v1/2016fh_16j/smoke_out/2016fh_16j/12OTC2/cmaq_cb6/ptertac
