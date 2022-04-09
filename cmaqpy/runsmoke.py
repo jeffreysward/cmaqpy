@@ -60,30 +60,30 @@ class SMOKEModel:
         os.system(cmd)
 
         # Write directory info
-        dir_info =  f'# Root directory where you unzipped all .zips'
-        dir_info += f'setenv INSTALL_DIR "{self.NEI_HOME}"'
-        dir_info += f''
-        dir_info += f'# Full path of MCIP (meteorology) files'
-        dir_info += f'setenv MET_ROOT "{self.MCIP_OUT}"'
-        dir_info += f''
-        dir_info += f'## Location of SMOKE executables'
-        dir_info += f'setenv SMOKE_LOCATION "{self.SMOKE_EXE}"'
-        dir_info += f''
-        dir_info += f'## Location of I/O API utilities, such as juldate and m3xtract'
-        dir_info += f'setenv IOAPI_LOCATION "{self.IOAPI_EXE}"'
+        dir_info =  f'# Root directory where you unzipped all .zips\n'
+        dir_info += f'setenv INSTALL_DIR "{self.NEI_HOME}"\n'
+        dir_info += f'\n'
+        dir_info += f'# Full path of MCIP (meteorology) files\n'
+        dir_info += f'setenv MET_ROOT "{self.MCIP_OUT}"\n'
+        dir_info += f'\n'
+        dir_info += f'## Location of SMOKE executables\n'
+        dir_info += f'setenv SMOKE_LOCATION "{self.SMOKE_EXE}"\n'
+        dir_info += f'\n'
+        dir_info += f'## Location of I/O API utilities, such as juldate and m3xtract\n'
+        dir_info += f'setenv IOAPI_LOCATION "{self.IOAPI_EXE}"\n'
         utils.write_to_template(dir_def_path, dir_info, id='%DIR%') 
 
         # Write case info
-        case_info =  f'# Case name'
-        case_info += f'setenv CASE "{self.nei_case_name}"'
-        case_info += f''
-        case_info += f'## Grid name'
-        case_info += f'setenv REGION "{self.region_desc}"'
-        case_info += f'setenv REGION_ABBREV "{self.grid_name}" # affects filename labeling'
-        case_info += f'setenv REGION_IOAPI_GRIDNAME "{self.grid_name}" # should match GRIDDESC'
-        case_info += f''
-        case_info += f'## Speciation mechanism name'
-        case_info += f'setenv EMF_SPC "{self.chem_mech}"'
+        case_info =  f'# Case name\n'
+        case_info += f'setenv CASE "{self.nei_case_name}"\n'
+        case_info += f'\n'
+        case_info += f'## Grid name\n'
+        case_info += f'setenv REGION "{self.region_desc}"\n'
+        case_info += f'setenv REGION_ABBREV "{self.grid_name}" # affects filename labeling\n'
+        case_info += f'setenv REGION_IOAPI_GRIDNAME "{self.grid_name}" # should match GRIDDESC\n'
+        case_info += f'\n'
+        case_info += f'## Speciation mechanism name\n'
+        case_info += f'setenv EMF_SPC "{self.chem_mech}"\n'
         utils.write_to_template(dir_def_path, case_info, id='%CASE%')   
 
     def run_sector(self, type='onetime', season='summer', n_procs=1, gb_mem=100, run_hours=12, setup_only=False):
