@@ -62,6 +62,7 @@ class CMAQModel:
         self.ICON_SCRIPTS = f'{self.CMAQ_HOME}/PREP/icon/scripts'
         self.BCON_SCRIPTS = f'{self.CMAQ_HOME}/PREP/bcon/scripts'
         self.CCTM_SCRIPTS = f'{self.CMAQ_HOME}/CCTM/scripts'
+        self.COMBINE_SCRIPTS = f'{self.CMAQ_HOME}/POST/combine/scripts'
         self.CMAQ_DATA = dirpaths.get('CMAQ_DATA')
         if new_mcip:
             self.MCIP_OUT = f'{self.CMAQ_DATA}/{self.appl}/mcip'
@@ -100,9 +101,6 @@ class CMAQModel:
         self.CMD_MV = 'mv %s %s'
         self.CMD_RM = 'rm %s'
         self.CMD_GUNZIP = 'gunzip %s'
-        self.CMD_ICON = f'sbatch --requeue {self.ICON_SCRIPTS}/run_icon.csh'
-        self.CMD_BCON = f'sbatch --requeue {self.BCON_SCRIPTS}/run_bcon.csh'
-        self.CMD_CCTM = f'sbatch --requeue {self.CCTM_SCRIPTS}/submit_cctm.csh'
 
     def run_mcip(self, mcip_start_datetime=None, mcip_end_datetime=None, metfile_list=[], geo_file='geo_em.d01.nc', t_step=60, run_hours=4, setup_only=False):
         """
@@ -295,7 +293,8 @@ class CMAQModel:
 
         ## RUN ICON
         if not setup_only:
-            os.system(self.CMD_ICON)
+            CMD_ICON = f'sbatch --requeue {run_icon_path}'
+            os.system(CMD_ICON)
             # Sleep until the run_icon_{self.appl}.log file exists
             while not os.path.exists(f'{self.ICON_SCRIPTS}/run_icon_{self.appl}.log'):
                 time.sleep(1)
@@ -385,7 +384,8 @@ class CMAQModel:
         
         ## RUN BCON
         if not setup_only:
-            os.system(self.CMD_BCON)
+            CMD_BCON = f'sbatch --requeue {run_bcon_path}'
+            os.system(CMD_BCON)
             # Sleep until the run_bcon_{self.appl}.log file exists
             while not os.path.exists(f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}.log'):   
                 time.sleep(1)
@@ -670,7 +670,8 @@ class CMAQModel:
             # Remove logs from previous runs
             os.system(self.CMD_RM % (f'{self.CCTM_SCRIPTS}/CTM_LOG*'))
             # Submit CCTM to Slurm
-            os.system(self.CMD_CCTM)
+            CMD_CCTM = f'sbatch --requeue {submit_cctm_path}'
+            os.system(CMD_CCTM)
             # Give the log a few seconds to reset itself.
             time.sleep(10)
             # Sleep until the run_cctm_{self.appl}.log file exists
@@ -693,6 +694,80 @@ class CMAQModel:
                 print(f'CCTM ran in: {utils.strfdelta(elapsed)}')
                 sys.stdout.flush()
         return True
+
+    def run_combine(self, run_hours=2, mem_per_node=20, combine_vrsn='v532'):
+        """
+        Setup and run the combine program. Combine is a CMAQ post-processing program that formats 
+        the CCTM output data in a more convenient way.
+        """
+        ## Setup Combine
+        # Copy the template combine run script to the scripts directory
+        run_combine_path = f'{self.COMBINE_SCRIPTS}/run_combine.csh'
+        cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_combine.csh', run_combine_path)
+        os.system(cmd)
+
+        # Write slurm info
+        combine_slrum =  f'#SBATCH -J combine_{self.appl}              # Job name\n'
+        combine_slrum += f'#SBATCH -o {self.COMBINE_SCRIPTS}/out_combine_{self.appl}.log   # Name of stdout output file\n'
+        combine_slrum += f'#SBATCH --ntasks=1              # Total number of tasks\n'
+        combine_slrum += f'#SBATCH --tasks-per-node=1      # sets number of tasks to run on each node\n'
+        combine_slrum += f'#SBATCH --cpus-per-task=1       # sets number of cpus needed by each task\n'
+        combine_slrum += f'#SBATCH --get-user-env          # tells sbatch to retrieve the users login environment\n'
+        combine_slrum += f'#SBATCH -t {run_hours}:00:00              # Run time (hh:mm:ss)\n'
+        combine_slrum += f'#SBATCH --mem={mem_per_node}000M            # memory required per node\n'
+        combine_slrum += f'#SBATCH --partition=default_cpu # Which queue it should run on\n'
+        utils.write_to_template(run_combine_path, combine_slrum, id='%SLURM%') 
+
+        # Write runtime info
+        combine_runtime =  f'#> Choose compiler and set up CMAQ environment with correct\n'
+        combine_runtime += f'#> libraries using config.cmaq. Options: intel | gcc | pgi\n'
+        combine_runtime += f'setenv compiler {self.compiler}\n'
+        combine_runtime += f'setenv compilerVrsn {self.compiler_vrsn}\n' 
+        combine_runtime += f'\n'
+        combine_runtime += f'#> Source the config.cmaq file to set the build environment\n'
+        combine_runtime += f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
+        combine_runtime += f'\n'
+        combine_runtime += f'#> Set General Parameters for Configuring the Simulation\n'
+        combine_runtime += f'set VRSN      = {self.cctm_vrsn}              #> Code Version\n'
+        combine_runtime += f'set PROC      = mpi               #> serial or mpi\n'
+        combine_runtime += f'set MECH      = {self.chem_mech}      #> Mechanism ID\n'
+        combine_runtime += f'set APPL      = {self.appl}        #> Application Name (e.g. Gridname)\n'
+        combine_runtime += f'\n'
+        combine_runtime += f'#> Define RUNID as any combination of parameters above or others. By default,\n'
+        combine_runtime += f'#> this information will be collected into this one string, $RUNID, for easy\n'
+        combine_runtime += f'#> referencing in output binaries and log files as well as in other scripts.\n'
+        combine_runtime += f'set RUNID = {self.cctm_runid}\n'
+        combine_runtime += f'\n'
+        combine_runtime += f'#> Set the build directory if this was not set above\n' 
+        combine_runtime += f'#> (this is where the CMAQ executable is located by default).\n'
+        combine_runtime += f'if ( ! $?BINDIR ) then\n'
+        combine_runtime += f'set BINDIR = {self.COMBINE_SCRIPTS}/BLD_combine_{combine_vrsn}_{self.compiler}{self.compiler_vrsn}\n'
+        combine_runtime += f'endif\n'
+        combine_runtime += f'\n'
+        combine_runtime += f'#> Set the name of the executable.\n'
+        combine_runtime += f'set EXEC = combine_{combine_vrsn}.exe\n'
+        combine_runtime += f'\n'
+        combine_runtime += f'#> Set location of CMAQ repo.  This will be used to point to the correct species definition files.\n'
+        combine_runtime += f'set REPO_HOME = {self.CMAQ_HOME}\n'
+        combine_runtime += f'\n'
+        combine_runtime += f'#> Set working, input and output directories\n'
+        combine_runtime += f'set METDIR     = {self.MCIP_OUT}           #> Met Output Directory\n'
+        combine_runtime += f'set CCTMOUTDIR = {self.CCTM_OUTDIR}      #> CCTM Output Directory\n'
+        combine_runtime += f'set POSTDIR    = {self.POST}                      #> Location where combine file will be written\n'
+        utils.write_to_template(run_combine_path, combine_runtime, id='%RUNTIME%') 
+
+        combine_setup =  f'#> Set Start and End Days for looping\n'
+        combine_setup += f'set START_DATE = "{self.start_datetime.strftime("%Y-%m-%d")}"     #> beginning date\n'
+        combine_setup += f'set END_DATE   = "{self.end_datetime.strftime("%Y-%m-%d")}"     #> ending date\n'
+        combine_setup += f'\n'
+        combine_setup += f'#> Set location of species definition files for concentration and deposition species.\n'
+        combine_setup += f'setenv SPEC_CONC {self.COMBINE_SCRIPTS}/spec_def_files/SpecDef_{self.chem_mech}.txt\n'
+        combine_setup += f'setenv SPEC_DEP  {self.COMBINE_SCRIPTS}/spec_def_files/SpecDef_Dep_{self.chem_mech}.txt\n'
+        utils.write_to_template(run_combine_path, combine_setup, id='%SETUP%') 
+
+        # Submit combine to slurm
+        CMD_COMBINE = f'sbatch --requeue {run_combine_path}'
+        os.system(CMD_COMBINE)
 
     def finish_check(self, program):
         """
