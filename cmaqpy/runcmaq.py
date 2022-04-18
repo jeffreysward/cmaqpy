@@ -10,7 +10,7 @@ class CMAQModel:
     """
     This class provides a framework for running the CMAQ Model.
     """
-    def __init__(self, start_datetime, end_datetime, appl, coord_name, grid_name, chem_mech ='cb6r3_ae7_aq', cctm_vrsn='v533', setup_yaml='dirpaths.yml', compiler='gcc', compiler_vrsn='9.3.1', new_mcip=True, verbose=False):
+    def __init__(self, start_datetime, end_datetime, appl, coord_name, grid_name, chem_mech='cb6r3_ae7_aq', cctm_vrsn='v533', setup_yaml='dirpaths.yml', compiler='gcc', compiler_vrsn='9.3.1', new_mcip=True, verbose=False):
         self.appl = appl
         self.coord_name = coord_name
         self.grid_name = grid_name
@@ -227,7 +227,7 @@ class CMAQModel:
             self.run_mcip(mcip_start_datetime=mcip_start_datetime, mcip_end_datetime=mcip_end_datetime, metfile_list=metfile_list, geo_file=geo_file, t_step=t_step, setup_only=False) 
         
 
-    def run_icon(self, type='regrid', coarse_grid_name='coarse', cctm_pfx='CCTM_CONC_v53_', run_hours=2, setup_only=False):
+    def run_icon(self, type='regrid', coarse_grid_appl='coarse', run_hours=2, setup_only=False):
         """
         Setup and run ICON, which produces initial conditions for CMAQ.
         """
@@ -279,8 +279,8 @@ class CMAQModel:
         icon_files =  f'    setenv SDATE           {self.start_datetime.strftime("%Y%j")}\n'
         icon_files += f'    setenv STIME           {self.start_datetime.strftime("%H%M%S")}\n'
         icon_files += f'if ( $ICON_TYPE == regrid ) then\n'
-        icon_files += f'    setenv CTM_CONC_1 {self.CMAQ_DATA}/{coarse_grid_name}/cctm/{cctm_pfx}{self.start_datetime.strftime("%Y%m%d")}.nc\n'
-        icon_files += f'    setenv MET_CRO_3D_CRS {self.CMAQ_DATA}/{coarse_grid_name}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}\n'
+        icon_files += f'    setenv CTM_CONC_1 {self.CMAQ_DATA}/{coarse_grid_appl}/output_{self.cctm_runid}/CCTM_CONC_{self.cctm_runid}_{self.start_datetime.strftime("%Y%m%d")}.nc\n'
+        icon_files += f'    setenv MET_CRO_3D_CRS {self.CMAQ_DATA}/{coarse_grid_appl}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}\n'
         icon_files += f'    setenv MET_CRO_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}.nc\n'
         icon_files += f'    setenv INIT_CONC_1    "$OUTDIR/ICON_$VRSN_{self.appl}_{type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
         icon_files += f'endif\n'
@@ -315,10 +315,21 @@ class CMAQModel:
                 print(f'ICON ran in: {utils.strfdelta(elapsed)}')
         return True
 
-    def run_bcon(self, type='regrid', coarse_grid_name='coarse', cctm_pfx='CCTM_CONC_v53_', run_hours=2, setup_only=False):
+    def run_bcon(self, bcon_start_datetime=None, bcon_end_datetime=None, type='regrid', coarse_grid_appl='coarse', run_hours=2, bcon_vrsn='v532', setup_only=False):
         """
         Setup and run BCON, which produces boundary conditions for CMAQ.
         """
+        # Set the start and end dates
+        if bcon_start_datetime is None:
+            bcon_start_datetime = self.start_datetime
+        if bcon_end_datetime is None:
+            bcon_end_datetime = self.end_datetime
+        # Determine the length of the BCON run
+        bcon_delt = bcon_end_datetime - bcon_start_datetime
+
+        # Define the coarse grid runid
+        coarse_runid = f'{self.cctm_vrsn}_{self.compiler}{self.compiler_vrsn}_{coarse_grid_appl}'
+
         ## SETUP BCON
         # Copy the template BCON run script to the scripts directory
         run_bcon_path = f'{self.BCON_SCRIPTS}/run_bcon.csh'
@@ -326,8 +337,8 @@ class CMAQModel:
         os.system(cmd)
 
         # Write Slurm info
-        bcon_slurm =  f'#SBATCH -J icon_{self.appl}		# Job name\n'
-        bcon_slurm += f'#SBATCH -o {self.BCON_SCRIPTS}/run_icon_{self.appl}.log\n'
+        bcon_slurm =  f'#SBATCH -J bcon_{self.appl}		# Job name\n'
+        bcon_slurm += f'#SBATCH -o {self.BCON_SCRIPTS}/run_bcon_{self.appl}_{bcon_start_datetime.strftime("%Y%m%d")}.log\n'
         bcon_slurm += f'#SBATCH --nodes=1		# Total number of nodes requested\n' 
         bcon_slurm += f'#SBATCH --ntasks=1		# Total number of tasks to be configured for.\n' 
         bcon_slurm += f'#SBATCH --tasks-per-node=1	# sets number of tasks to run on each node.\n' 
@@ -342,7 +353,7 @@ class CMAQModel:
         bcon_runtime =  f'#> Source the config_cmaq file to set the run environment\n'
         bcon_runtime += f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
         bcon_runtime += f'#> Code Version\n'
-        bcon_runtime += f'set VRSN     = v532\n'
+        bcon_runtime += f'set VRSN     = {bcon_vrsn}\n'
         bcon_runtime += f'#> Application Name\n'                    
         bcon_runtime += f'set APPL     = {self.appl}\n'
         bcon_runtime += f'#> Boundary condition type [profile|regrid]\n'                     
@@ -350,7 +361,7 @@ class CMAQModel:
         bcon_runtime += f'#> check GRIDDESC file for GRID_NAME options\n'                 
         bcon_runtime += f'setenv GRID_NAME {self.grid_name}\n'
         bcon_runtime += f'#> grid description file\n'                    
-        bcon_runtime += f'setenv GRIDDESC {self.CMAQ_DATA}/{self.appl}/mcip/GRIDDESC\n'
+        bcon_runtime += f'setenv GRIDDESC {self.GRIDDESC}\n'
         bcon_runtime += f'#> GCTP spheroid, use 20 for WRF-based modeling\n' 
         bcon_runtime += f'setenv IOAPI_ISPH 20\n'                     
         bcon_runtime += f'#> turn on excess WRITE3 logging [ options: T | F ]\n'
@@ -359,26 +370,29 @@ class CMAQModel:
         bcon_runtime += f'setenv IOAPI_OFFSET_64 YES\n'
         bcon_runtime += f'#> output file directory\n'   
         bcon_runtime += f'set OUTDIR   = {self.CMAQ_DATA}/{self.appl}/bcon\n'
+        bcon_runtime += f'#> Set the build directory:\n'
+        bcon_runtime += f'set BLD      = {self.CMAQ_HOME}/PREP/bcon/scripts/BLD_BCON_{bcon_vrsn}_{self.compiler}{self.compiler_vrsn}\n'
+        bcon_runtime += f'set EXEC     = BCON_{bcon_vrsn}.exe\n'
         bcon_runtime += f'#> define the model execution id\n'
         bcon_runtime += f'setenv EXECUTION_ID $EXEC\n'
         utils.write_to_template(run_bcon_path, bcon_runtime, id='%RUNTIME%')    
 
         # Write input file info to the run script
-        bcon_files =  f'    setenv SDATE           {self.start_datetime.strftime("%Y%j")}\n'
-        bcon_files += f'    setenv STIME           {self.start_datetime.strftime("%H%M%S")}\n'
-        bcon_files += f'    setenv RUNLEN          {utils.strfdelta(self.delt, fmt="{H:02}{M:02}{S:02}")}\n'   
+        bcon_files =  f'    setenv SDATE           {bcon_start_datetime.strftime("%Y%j")}\n'
+        bcon_files += f'    setenv STIME           {bcon_start_datetime.strftime("%H%M%S")}\n'
+        bcon_files += f'    setenv RUNLEN          {utils.strfdelta(bcon_delt, fmt="{H:02}{M:02}{S:02}")}\n'   
         
         bcon_files += f' if ( $BCON_TYPE == regrid ) then\n'
-        bcon_files += f'     setenv CTM_CONC_1 {self.CMAQ_DATA}/{coarse_grid_name}/cctm/{cctm_pfx}{self.start_datetime.strftime("%Y%m%d")}.nc\n'
-        bcon_files += f'     setenv MET_CRO_3D_CRS {self.CMAQ_DATA}/{coarse_grid_name}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}\n'
-        bcon_files += f'     setenv MET_BDY_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METBDY3D_{self.start_datetime.strftime("%y%m%d")}.nc\n'
-        bcon_files += f'     setenv BNDY_CONC_1    "$OUTDIR/BCON_$VRSN_{self.appl}_{type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
+        bcon_files += f'     setenv CTM_CONC_1 {self.CMAQ_DATA}/{coarse_grid_appl}/output_CCTM_{coarse_runid}/CCTM_CONC_{coarse_runid}_{self.start_datetime.strftime("%Y%m%d")}.nc\n'
+        bcon_files += f'     setenv MET_CRO_3D_CRS {self.CMAQ_DATA}/{coarse_grid_appl}/mcip/METCRO3D_{bcon_start_datetime.strftime("%y%m%d")}.nc\n'
+        bcon_files += f'     setenv MET_BDY_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METBDY3D_{bcon_start_datetime.strftime("%y%m%d")}.nc\n'
+        bcon_files += f'     setenv BNDY_CONC_1    "$OUTDIR/BCON_{bcon_vrsn}_{self.appl}_{type}_{bcon_start_datetime.strftime("%Y%m%d")} -v"\n'
         bcon_files += f' endif\n'
         
         bcon_files += f' if ( $BCON_TYPE == profile ) then\n'
         bcon_files += f'     setenv BC_PROFILE $BLD/avprofile_cb6r3m_ae7_kmtbr_hemi2016_v53beta2_m3dry_col051_row068.csv\n'
-        bcon_files += f'     setenv MET_BDY_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METBDY3D_{self.start_datetime.strftime("%y%m%d")}.nc\n'
-        bcon_files += f'     setenv BNDY_CONC_1    "$OUTDIR/BCON_$VRSN_{self.appl}_{type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
+        bcon_files += f'     setenv MET_BDY_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METBDY3D_{bcon_start_datetime.strftime("%y%m%d")}.nc\n'
+        bcon_files += f'     setenv BNDY_CONC_1    "$OUTDIR/BCON_{bcon_vrsn}_{self.appl}_{type}_{bcon_start_datetime.strftime("%Y%m%d")} -v"\n'
         bcon_files += f' endif\n'
         utils.write_to_template(run_bcon_path, bcon_files, id='%INFILES%')
         
@@ -387,24 +401,41 @@ class CMAQModel:
             CMD_BCON = f'sbatch --requeue {run_bcon_path}'
             os.system(CMD_BCON)
             # Sleep until the run_bcon_{self.appl}.log file exists
-            while not os.path.exists(f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}.log'):   
+            while not os.path.exists(f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}_{bcon_start_datetime.strftime("%Y%m%d")}.log'):   
                 time.sleep(1)
             # Begin BCON simulation clock
             simstart = datetime.datetime.now()
             if self.verbose:
                 print('Starting BCON at: ' + str(simstart))
                 sys.stdout.flush()
-            bcon_sim = self.finish_check('bcon')
+            bcon_sim = self.finish_check('bcon', custom_log=f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}_{bcon_start_datetime.strftime("%Y%m%d")}.log')
             while bcon_sim != 'complete':
                 if bcon_sim == 'failed':
                     return False
                 else:
                     time.sleep(2)
-                    bcon_sim = self.finish_check('bcon')
+                    bcon_sim = self.finish_check('bcon', custom_log=f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}_{bcon_start_datetime.strftime("%Y%m%d")}.log')
             elapsed = datetime.datetime.now() - simstart
             if self.verbose:
                 print(f'BCON ran in: {utils.strfdelta(elapsed)}')
         return True
+
+    def run_bcon_multiday(self, type='regrid', coarse_grid_appl='coarse', run_hours=2, bcon_vrsn='v532', setup_only=False):
+        """
+        Run BCON over multiple days. Per CMAQ convention, BCON will run for the same length
+        as CCTM -- i.e., a single day. 
+        """
+        # Loop over each day
+        for day_no in range(self.delt.days):
+            # Set the start datetime and end datetime for the day
+            bcon_start_datetime = self.start_datetime + datetime.timedelta(day_no)
+            bcon_end_datetime = self.start_datetime + datetime.timedelta(day_no + 1)
+            if self.verbose:
+                print(f'Working on BCON for {bcon_start_datetime}')
+
+            # run bcon for that day
+            self.run_bcon(bcon_start_datetime=bcon_start_datetime, bcon_end_datetime=bcon_end_datetime, type=type,
+                coarse_grid_appl=coarse_grid_appl, run_hours=run_hours, bcon_vrsn=bcon_vrsn, setup_only=setup_only)
 
     def setup_inpdir(self):
         """
@@ -769,7 +800,7 @@ class CMAQModel:
         CMD_COMBINE = f'sbatch --requeue {run_combine_path}'
         os.system(CMD_COMBINE)
 
-    def finish_check(self, program):
+    def finish_check(self, program, custom_log=None):
         """
         Check if a specified CMAQ subprogram has finished running.
 
@@ -780,21 +811,31 @@ class CMAQModel:
 
         """
         if program == 'mcip':
-            msg = utils.read_last(f'{self.MCIP_SCRIPTS}/run_mcip_{self.mcip_appl}.log', n_lines=1)
+            if custom_log is not None:
+                msg = utils.read_last(custom_log, n_lines=1)
+            else:
+                msg = utils.read_last(f'{self.MCIP_SCRIPTS}/run_mcip_{self.mcip_appl}.log', n_lines=1)
             complete = 'NORMAL TERMINATION' in msg
             failed = 'Error running mcip' in msg
         elif program == 'icon':
-            msg = utils.read_last(f'{self.ICON_SCRIPTS}/run_icon_{self.appl}.log', n_lines=5)
+            if custom_log is not None:
+                msg = utils.read_last(custom_log, n_lines=20)
+            else:
+                msg = utils.read_last(f'{self.ICON_SCRIPTS}/run_icon_{self.appl}.log', n_lines=10)
             complete = '>>---->  Program  ICON completed successfully  <----<<' in msg
-            # Not sure what the correct failure message should be!
-            failed = False
+            failed = '*** ERROR ABORT' in msg
         elif program == 'bcon':
-            msg = utils.read_last(f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}.log', n_lines=5)
+            if custom_log is not None:
+                msg = utils.read_last(custom_log, n_lines=10)
+            else:
+                msg = utils.read_last(f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}.log', n_lines=10)
             complete = '>>---->  Program  BCON completed successfully  <----<<' in msg
-            # Not sure what the correct failure message should be!
-            # failed = '-------------------------------------------' in msg
+            failed = '*** ERROR ABORT' in msg
         elif program == 'cctm':
-            msg = utils.read_last(f'{self.CCTM_SCRIPTS}/cctm_{self.appl}.log', n_lines=40)
+            if custom_log is not None:
+                msg = utils.read_last(custom_log, n_lines=40)
+            else:
+                msg = utils.read_last(f'{self.CCTM_SCRIPTS}/cctm_{self.appl}.log', n_lines=40)
             complete = '|>---   PROGRAM COMPLETED SUCCESSFULLY   ---<|' in msg
             failed = 'Runscript Detected an Error' in msg
         else:

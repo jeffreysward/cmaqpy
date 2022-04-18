@@ -21,10 +21,7 @@
     exit 1
  endif
  echo " "; echo " Input data path, CMAQ_DATA set to $CMAQ_DATA"; echo " "
-
-#> Set the build directory:
- set BLD      = ${CMAQ_HOME}/PREP/bcon/scripts/BLD_BCON_${VRSN}_${compilerString}
- set EXEC     = BCON_${VRSN}.exe  
+ 
  cat $BLD/BCON_${VRSN}.cfg; echo " "; set echo
 
 # =====================================================================
