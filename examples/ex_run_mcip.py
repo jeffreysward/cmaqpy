@@ -1,7 +1,5 @@
 """
 This example shows how to process wrfout files with MCIP using the `CMAQModel` class.
-Running this on the head node takes up quite a bit of resources for 5 - 30 minutes 
-dependng on how much WRF data you're processing, so it's best to run this within an interactive job.
 
 Note that MCIP will fail if your `start_datetime` is not AFTER the fist timestep of 
 your wrfout*.nc file.
@@ -12,8 +10,8 @@ from cmaqpy.runcmaq import CMAQModel
 start_datetime = 'August 06, 2016'  # first day that you want processed
 end_datetime = 'August 15, 2016'  # ONE DAY AFTER the last day you want processed
 # Specify if you want to run the 12 km or the 4 km domain
-appl = '2016_12OTC2'
-# appl = '2016_4OTC2'
+# appl = '2016_12OTC2'
+appl = '2016_4OTC2'
 coord_name = 'LAM_40N97W'
 if appl == '2016_12OTC2':
     grid_name = '12OTC2'
