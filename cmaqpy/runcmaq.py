@@ -10,7 +10,7 @@ class CMAQModel:
     """
     This class provides a framework for running the CMAQ Model.
     """
-    def __init__(self, start_datetime, end_datetime, appl, coord_name, grid_name, chem_mech='cb6r3_ae7_aq', cctm_vrsn='v533', setup_yaml='dirpaths.yml', compiler='gcc', compiler_vrsn='9.3.1', new_mcip=True, verbose=False):
+    def __init__(self, start_datetime, end_datetime, appl, coord_name, grid_name, chem_mech='cb6r3_ae7_aq', cctm_vrsn='v533', setup_yaml='dirpaths.yml', compiler='gcc', compiler_vrsn='9.3.1', new_mcip=True, new_icon=False, verbose=False):
         self.appl = appl
         self.coord_name = coord_name
         self.grid_name = grid_name
@@ -76,7 +76,10 @@ class CMAQModel:
         self.CCTM_PT = f'{self.CCTM_INPDIR}/emis/inln_point'
         self.CCTM_LAND = f'{self.CCTM_INPDIR}/land'
         self.POST = f'{self.CMAQ_DATA}/{self.appl}/post'
-        self.LOC_IC = dirpaths.get('LOC_IC')
+        if new_icon:
+            self.LOC_IC = self.CCTM_OUTDIR
+        else:
+            self.LOC_IC = dirpaths.get('LOC_IC')
         self.LOC_BC = dirpaths.get('LOC_BC')
         self.LOC_GRIDDED = dirpaths.get('LOC_GRIDDED')
         self.LOC_RWC = dirpaths.get('LOC_RWC')
