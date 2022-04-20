@@ -192,6 +192,33 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
   set DD = `date -ud "${TODAYG}" +%d`           #> Get only the day
   set YYYYJJJ = $TODAYJ
 
+  #> Retrieve Representative Day Information
+  if ( $DD == '08' ) then
+     @ gline = 8 + 1
+  else if ( $DD == '09' ) then
+     @ gline = 9 + 1
+  else
+     @ gline = $DD + 1
+  endif
+
+  # Emission Rates for Inline Point Sources
+  #--> Create a link for representative date emissions sectors: othpt, ptnonipm, pt_oilgas 
+  #--> NOTE: this is the how NEI processes emissions, so you need the sectorlist file from one of the NEI platforms
+  set sectorlist = $IN_PTpath/../sectorlist_2016fh_02aug2019_v0
+  set reffile = $IN_PTpath/../smk_merge_dates_${YYYYMM}.txt
+
+  set intable = `head -$gline $reffile | tail -1`
+  set Date     = `echo $intable[1] | cut -d, -f1`
+  set aveday_N = `echo $intable[2] | cut -d, -f1`
+  set aveday_Y = `echo $intable[3] | cut -d, -f1`
+  set mwdss_N  = `echo $intable[4] | cut -d, -f1`
+  set mwdss_Y  = `echo $intable[5] | cut -d, -f1`
+  set week_N   = `echo $intable[6] | cut -d, -f1`
+  set week_Y   = `echo $intable[7] | cut -d, -f1`
+  set all      = `echo $intable[8] | cut -d, -f1`
+#   echo $Date $aveday_N $aveday_Y $mwdss_N $mwdss_Y 
+#   echo $week_N $week_Y $all
+
   #> Calculate Yesterday's Date
   set YESTERDAY = `date -ud "${TODAYG}-1days" +%Y%m%d` #> Convert YYYY-MM-DD to YYYYJJJ
 
@@ -212,20 +239,7 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
 #> Input Files (Some are Day-Dependent)
 # =====================================================================
 
-  #> Initial conditions
-  if ($NEW_START == true || $NEW_START == TRUE ) then
-     setenv ICFILE ICON_20160630_bench.nc
-     setenv INIT_MEDC_1 notused
-  else
-     set ICpath = $OUTDIR
-     setenv ICFILE CCTM_CGRID_${RUNID}_${YESTERDAY}.nc
-     setenv INIT_MEDC_1 $ICpath/CCTM_MEDIA_CONC_${RUNID}_${YESTERDAY}.nc
-     setenv INITIAL_RUN N
-  endif
-
-  #> Boundary conditions
-#   set BCFILE = BCON_${YYYYMMDD}_bench.nc
-  set BCFILE = BCON_v53_12OTC2_regrid_from36US3_${YYYYMMDD}
+%ICBC%
 
   #> Off-line photolysis rates 
   #set JVALfile  = JTABLE_${YYYYJJJ}
@@ -267,110 +281,11 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
   setenv EMISSCTRL_NML ${BLD}/EmissCtrl_${MECH}.nml
 
   #> Spatial Masks For Emissions Scaling
-#   setenv CMAQ_MASKS $SZpath/12US1_surf_bench.nc #> horizontal grid-dependent surf zone file
   setenv CMAQ_MASKS $SZpath/12US1_surf.12otc2.ncf #> horizontal grid-dependent surf zone file
 
-  #> Gridded Emissions Files 
-  setenv N_EMIS_GR 2
-#   set EMISfile  = emis_mole_all_${YYYYMMDD}_cb6_bench.nc
-  set EMISfile = emis_mole_all_${YYYYMMDD}_12US1_withbeis_2016fh_16j.12us2.ptnonertac_apt_fix.12OTC2.ncf
-  setenv GR_EMIS_001 ${EMISpath}/${EMISfile}
-  setenv GR_EMIS_LAB_001 GRIDDED_EMIS
-  setenv GR_EM_SYM_DATE_001 F # To change default behaviour please see Users Guide for EMIS_SYM_DATE
+%GRIDDED%
 
-#   set EMISfile  = emis_mole_rwc_${YYYYMMDD}_12US1_cmaq_cb6_2016ff_16j.nc
-  set EMISfile  = emis_mole_rwc_${YYYYMMDD}_12US1_cmaq_cb6_2016fh_16j_12OTC2.ncf
-  setenv GR_EMIS_002 ${EMISpath2}/${EMISfile}
-  setenv GR_EMIS_LAB_002 GR_RES_FIRES
-  setenv GR_EM_SYM_DATE_002 F # To change default behaviour please see Users Guide for EMIS_SYM_DATE
-
-  #> In-line point emissions configuration
-  setenv N_EMIS_PT 9          #> Number of elevated source groups
-
-#   set STKCASEG = 12US1_2016ff_16j           # Stack Group Version Label
-#   set STKCASEE = 12US1_cmaq_cb6_2016ff_16j  # Stack Emission Version Label
-  set STKCASEG = 12US1_2016fh_16j           # Stack Group Version Label
-  set STKCASEE = 12US1_cmaq_cb6_2016fh_16j  # Stack Emission Version Label
-
-  # Time-Independent Stack Parameters for Inline Point Sources
-  setenv STK_GRPS_001 $IN_PTpath/stack_groups/stack_groups_ptnonertac_12US2_2016fh_16j.ncf
-  setenv STK_GRPS_002 $IN_PTpath/stack_groups/stack_groups_ptertac_${GRID_NAME}_2016fh_16j.ncf
-  setenv STK_GRPS_003 $IN_PTpath/stack_groups/stack_groups_othpt_${STKCASEG}.ncf
-  setenv STK_GRPS_004 $IN_PTpath/stack_groups/stack_groups_ptagfire_${YYYYMMDD}_${STKCASEG}.ncf
-  setenv STK_GRPS_005 $IN_PTpath/stack_groups/stack_groups_ptfire_${YYYYMMDD}_${STKCASEG}.ncf
-  setenv STK_GRPS_006 $IN_PTpath/stack_groups/stack_groups_ptfire_othna_${YYYYMMDD}_${STKCASEG}.ncf
-  setenv STK_GRPS_007 $IN_PTpath/stack_groups/stack_groups_pt_oilgas_${STKCASEG}.ncf
-  setenv STK_GRPS_008 $IN_PTpath/stack_groups/stack_groups_cmv_c3_12_${STKCASEG}.ncf
-  setenv STK_GRPS_009 $IN_PTpath/stack_groups/stack_groups_cmv_c1c2_12_${STKCASEG}.ncf
-
-  # Emission Rates for Inline Point Sources
-  #--> Create a link for representative date emissions sectors: othpt, ptnonipm, pt_oilgas 
-  #--> NOTE: this is the how NEI processes emissions, so you need the sectorlist file from one of the NEI platforms
-  set sectorlist = $IN_PTpath/../sectorlist_2016fh_02aug2019_v0
-  set reffile = $IN_PTpath/../smk_merge_dates_${YYYYMM}.txt
-
-  if ( $DD == '08' ) then
-     @ gline = 8 + 1
-  else if ( $DD == '09' ) then
-     @ gline = 9 + 1
-  else
-     @ gline = $DD + 1
-  endif
-
-  set intable = `head -$gline $reffile | tail -1`
-  set Date     = `echo $intable[1] | cut -d, -f1`
-  set aveday_N = `echo $intable[2] | cut -d, -f1`
-  set aveday_Y = `echo $intable[3] | cut -d, -f1`
-  set mwdss_N  = `echo $intable[4] | cut -d, -f1`
-  set mwdss_Y  = `echo $intable[5] | cut -d, -f1`
-  set week_N   = `echo $intable[6] | cut -d, -f1`
-  set week_Y   = `echo $intable[7] | cut -d, -f1`
-  set all      = `echo $intable[8] | cut -d, -f1`
-  echo $Date $aveday_N $aveday_Y $mwdss_N $mwdss_Y 
-  echo $week_N $week_Y $all
-
-  setenv STK_EMIS_001 $IN_PTpath/inln_mole_ptnonertac_${YYYYMMDD}_12US2_cmaq_cb6_2016fh_16j.ncf
-  setenv STK_EMIS_002 $IN_PTpath/inln_mole_ptertac_${YYYYMMDD}_${GRID_NAME}_cmaq_cb6_2016fh_16j.ncf
-#   setenv STK_EMIS_003 $IN_PTpath/inln_mole_othpt_${YYYYMMDD}_${STKCASEE}.ncf
-  setenv STK_EMIS_003 $IN_PTpath/inln_mole_othpt_${mwdss_N}_${STKCASEE}.ncf  # Modeled using representative days
-  setenv STK_EMIS_004 $IN_PTpath/inln_mole_ptagfire_${YYYYMMDD}_${STKCASEE}.ncf
-  setenv STK_EMIS_005 $IN_PTpath/inln_mole_ptfire_${YYYYMMDD}_${STKCASEE}.ncf
-  setenv STK_EMIS_006 $IN_PTpath/inln_mole_ptfire_othna_${YYYYMMDD}_${STKCASEE}.ncf
-#   setenv STK_EMIS_007 $IN_PTpath/inln_mole_pt_oilgas_${YYYYMMDD}_${STKCASEE}.ncf
-  setenv STK_EMIS_007 $IN_PTpath/inln_mole_pt_oilgas_${mwdss_Y}_${STKCASEE}.ncf  # Modeled using representative days
-  setenv STK_EMIS_008 $IN_PTpath/inln_mole_cmv_c3_12_${YYYYMMDD}_${STKCASEE}.ncf
-  setenv STK_EMIS_009 $IN_PTpath/inln_mole_cmv_c1c2_12_${YYYYMMDD}_${STKCASEE}.ncf
-
-  # Label Each Emissions Stream
-  setenv STK_EMIS_LAB_001 PT_NONEGU
-  setenv STK_EMIS_LAB_002 PT_EGU
-  setenv STK_EMIS_LAB_003 PT_OTHER
-  setenv STK_EMIS_LAB_004 PT_AGFIRES
-  setenv STK_EMIS_LAB_005 PT_FIRES
-  setenv STK_EMIS_LAB_006 PT_OTHFIRES
-  setenv STK_EMIS_LAB_007 PT_OILGAS
-  setenv STK_EMIS_LAB_008 PT_CMV
-  setenv STK_EMIS_LAB_009 PT_CMV12
-
-  # Stack emissions diagnostic files
-  #setenv STK_EMIS_DIAG_001 2DSUM
-  #setenv STK_EMIS_DIAG_002 2DSUM
-  #setenv STK_EMIS_DIAG_003 2DSUM
-  #setenv STK_EMIS_DIAG_004 2DSUM
-  #setenv STK_EMIS_DIAG_005 2DSUM
-
-  # Allow CMAQ to Use Point Source files with dates that do not
-  # match the internal model date
-  # To change default behaviour please see Users Guide for EMIS_SYM_DATE
-  setenv STK_EM_SYM_DATE_001 T
-  setenv STK_EM_SYM_DATE_002 T
-  setenv STK_EM_SYM_DATE_003 T
-  setenv STK_EM_SYM_DATE_004 T
-  setenv STK_EM_SYM_DATE_005 T
-  setenv STK_EM_SYM_DATE_006 T
-  setenv STK_EM_SYM_DATE_007 T
-  setenv STK_EM_SYM_DATE_008 T
-  setenv STK_EM_SYM_DATE_009 T
+%POINT%
 
   #> Lightning NOx configuration
   if ( $CTM_LTNG_NO == 'Y' ) then

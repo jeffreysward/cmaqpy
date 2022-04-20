@@ -69,12 +69,12 @@ If you need to run BCON, edit the `examples/ex_run_bcon.py` script
 
 1. Change `appl`
 2. Make sure that the start and end dates are correct. 
-3. Change the `coarse_grid_appl`
+3. Check the `coarse_grid_appl`
 
 ### CCTM
 Finally, edit `examples/ex_run_cctm.py`
 
-1. If not rerunning MCIP, specify the location of your MCIP files using the `LOC_MCIP` variable in `data/dirpaths.yml`  
-2. If not rerunning MCIP, set `new_mcip=False` in your `CMAQModel` instance  
+1. If not running MCIP, specify the location of your MCIP files using the `LOC_MCIP` variable in `data/dirpaths.yml` and set `new_mcip=False` in your `CMAQModel` instance.  
+2. If not running BCON, specify the location of you BCON files using the `LOC_BC` variable in `data/dirpaths.yml` and set `new_bcon=False` in your `CMAQModel` instance.
 3. Specify the name of your ptertac in-line emissiions files in the `LOC_ERTAC` variable in `data/dirpaths.yml`.   
-3. Change `appl`
+4. Change `appl`

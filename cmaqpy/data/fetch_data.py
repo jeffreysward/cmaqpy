@@ -6,7 +6,11 @@ import yaml
 
 def fetch_yaml(yaml_file):
     """
-    Lorem ipsum
+    Reads a yaml file and returns the contents.
+
+    :param yaml_file: string
+        Name of the yaml file containin your directory paths if located in this directory.
+        Otherwise, use the full file path. 
     """
     # Check to see if the resource exists. If not, directly open the `yaml_file` 
     # (i.e., assume that it's the full path)

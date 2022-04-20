@@ -9,8 +9,36 @@ from .data.fetch_data import fetch_yaml
 class CMAQModel:
     """
     This class provides a framework for running the CMAQ Model.
+
+    Parameters
+    ----------
+    :param start_datetime: string
+        Start date for the CMAQ simulation. I think you can technically 
+        start CMAQ at any time, but it's probably best to simply start at 00:00 UTC. 
+    :param end_datetime: string
+        Date after the last day for which you want to run CMAQ. E.g., if you list
+        August 4, 2016 the simulation will end August 4, 2016 00:00 UTC.
+    :param appl: string
+        Application name. Used primarily for directory and file naming.
+    :param coord_name: string
+        Coordinate name from the GRIDDESC file (e.g., LAM_40N100W),
+        which must match!
+    :param grid_name: string
+    :param chem_mech: string
+    :param cctm_vrsn: string
+    :param setup_yaml: string
+    :param compiler: string
+    :param compiler_vrsn: string
+    :param new_mcip: bool
+    :param new_icon: bool
+    :param new_bcon: bool
+    :param verbose: bool
+
+    See also
+    --------
+    SMOKEModel: setup and run the SMOKE model. 
     """
-    def __init__(self, start_datetime, end_datetime, appl, coord_name, grid_name, chem_mech='cb6r3_ae7_aq', cctm_vrsn='v533', setup_yaml='dirpaths.yml', compiler='gcc', compiler_vrsn='9.3.1', new_mcip=True, new_icon=False, verbose=False):
+    def __init__(self, start_datetime, end_datetime, appl, coord_name, grid_name, chem_mech='cb6r3_ae7_aq', cctm_vrsn='v533', setup_yaml='dirpaths.yml', compiler='gcc', compiler_vrsn='9.3.1', new_mcip=True, new_icon=False, icon_vrsn='v532', icon_type='regrid', new_bcon=True, bcon_vrsn='v532', bcon_type='regrid', verbose=False):
         self.appl = appl
         self.coord_name = coord_name
         self.grid_name = grid_name
@@ -18,6 +46,12 @@ class CMAQModel:
         self.cctm_vrsn = cctm_vrsn
         self.compiler = compiler
         self.compiler_vrsn = compiler_vrsn
+        self.new_icon = new_icon
+        self.icon_vrsn = icon_vrsn
+        self.icon_type = icon_type
+        self.new_bcon = new_bcon
+        self.bcon_vrsn = bcon_vrsn
+        self.bcon_type = bcon_type
         self.verbose = verbose
         self.cctm_runid = f'{self.cctm_vrsn}_{self.compiler}{self.compiler_vrsn}_{self.appl}'
         if self.verbose:
@@ -32,7 +66,8 @@ class CMAQModel:
             print(f'CMAQ run starting on: {self.start_datetime}')
             print(f'CMAQ run ending on: {self.end_datetime}')
 
-        # Define the domain windowing paramters for MCIP
+        # Define the domain windowing paramters for MCIP. 
+        # Could perhaps move this to the run_mcip method.
         if self.grid_name == '12OTC2':
             self.mcip_btrim = -1
             self.mcip_x0 = 141
@@ -55,45 +90,51 @@ class CMAQModel:
 
         # Set working and WRF model directory names
         dirs = fetch_yaml(setup_yaml)
-        dirpaths = dirs.get('directory_paths')
-        filepaths = dirs.get('file_paths')
-        self.CMAQ_HOME = dirpaths.get('CMAQ_HOME')
+        self.dirpaths = dirs.get('directory_paths')
+        self.filepaths = dirs.get('file_paths')
+        self.filenames = dirs.get('file_names')
+        self.CMAQ_HOME = self.dirpaths.get('CMAQ_HOME')
         self.MCIP_SCRIPTS = f'{self.CMAQ_HOME}/PREP/mcip/scripts'
         self.ICON_SCRIPTS = f'{self.CMAQ_HOME}/PREP/icon/scripts'
         self.BCON_SCRIPTS = f'{self.CMAQ_HOME}/PREP/bcon/scripts'
         self.CCTM_SCRIPTS = f'{self.CMAQ_HOME}/CCTM/scripts'
         self.COMBINE_SCRIPTS = f'{self.CMAQ_HOME}/POST/combine/scripts'
-        self.CMAQ_DATA = dirpaths.get('CMAQ_DATA')
+        self.CMAQ_DATA = self.dirpaths.get('CMAQ_DATA')
         if new_mcip:
             self.MCIP_OUT = f'{self.CMAQ_DATA}/{self.appl}/mcip'
         else:
-            self.MCIP_OUT = dirpaths.get('LOC_MCIP')
+            self.MCIP_OUT = self.dirpaths.get('LOC_MCIP')
         self.CCTM_INPDIR = f'{self.CMAQ_DATA}/{self.appl}/input'
         self.CCTM_OUTDIR = f'{self.CMAQ_DATA}/{self.appl}/output_CCTM_{self.cctm_runid}'
         self.ICBC = f'{self.CCTM_INPDIR}/icbc'
-        self.CCTM_GRIDDED = f'{self.CCTM_INPDIR}/emis/gridded_area/gridded'
-        self.CCTM_RWC = f'{self.CCTM_INPDIR}/emis/gridded_area/rwc'
+        self.CCTM_GRIDDED = f'{self.CCTM_INPDIR}/emis/gridded_area'
+        # self.CCTM_RWC = f'{self.CCTM_INPDIR}/emis/gridded_area/rwc'
+        # self.CCTM_BEIS = f'{self.CCTM_INPDIR}/emis/gridded_area/beis'
         self.CCTM_PT = f'{self.CCTM_INPDIR}/emis/inln_point'
         self.CCTM_LAND = f'{self.CCTM_INPDIR}/land'
         self.POST = f'{self.CMAQ_DATA}/{self.appl}/post'
         if new_icon:
             self.LOC_IC = self.CCTM_OUTDIR
         else:
-            self.LOC_IC = dirpaths.get('LOC_IC')
-        self.LOC_BC = dirpaths.get('LOC_BC')
-        self.LOC_GRIDDED = dirpaths.get('LOC_GRIDDED')
-        self.LOC_RWC = dirpaths.get('LOC_RWC')
-        self.LOC_IN_PT = dirpaths.get('LOC_IN_PT')
-        self.LOC_ERTAC = dirpaths.get('LOC_ERTAC')
-        self.LOC_SMK_MERGE_DATES = dirpaths.get('LOC_SMK_MERGE_DATES')
-        self.LOC_LAND = dirpaths.get('LOC_LAND')
-        self.DIR_TEMPLATES = dirpaths.get('DIR_TEMPLATES')
-        self.InMetDir = dirpaths.get('InMetDir')
-        self.InGeoDir = dirpaths.get('InGeoDir')
+            self.LOC_IC = self.dirpaths.get('LOC_IC')
+        if new_bcon:
+            self.LOC_BC = f'{self.CMAQ_DATA}/{self.appl}/bcon'
+        else:
+            self.LOC_BC = self.dirpaths.get('LOC_BC')
+        self.LOC_GRIDDED_AREA = self.dirpaths.get('LOC_GRIDDED_AREA')
+        self.LOC_RWC = self.dirpaths.get('LOC_RWC')
+        self.LOC_BEIS = self.dirpaths.get('LOC_BEIS')
+        self.LOC_IN_PT = self.dirpaths.get('LOC_IN_PT')
+        self.LOC_ERTAC = self.dirpaths.get('LOC_ERTAC')
+        self.LOC_SMK_MERGE_DATES = self.dirpaths.get('LOC_SMK_MERGE_DATES')
+        self.LOC_LAND = self.dirpaths.get('LOC_LAND')
+        self.DIR_TEMPLATES = self.dirpaths.get('DIR_TEMPLATES')
+        self.InMetDir = self.dirpaths.get('InMetDir')
+        self.InGeoDir = self.dirpaths.get('InGeoDir')
 
         # Define the locations for CMAQ inputs
-        self.GRIDDESC = filepaths.get('GRIDDESC')
-        self.SECTORLIST = filepaths.get('SECTORLIST')
+        self.GRIDDESC = self.filepaths.get('GRIDDESC')
+        self.SECTORLIST = self.filepaths.get('SECTORLIST')
 
         # Define the names of the CMAQ output files
         #### Maybe use this in the future ####
@@ -216,7 +257,7 @@ class CMAQModel:
             mcip_start_datetime = self.start_datetime + datetime.timedelta(day_no)
             mcip_end_datetime = self.start_datetime + datetime.timedelta(day_no + 1)
             if self.verbose:
-                print(f'Working on MCIP for {mcip_start_datetime}')
+                print(f'--> Working on MCIP for {mcip_start_datetime}')
             if metfile_dir is None:
                 # If all the met data is stored in the same file, pass that file in 
                 # using metfile_list and set metfile_dir=None
@@ -230,7 +271,7 @@ class CMAQModel:
             self.run_mcip(mcip_start_datetime=mcip_start_datetime, mcip_end_datetime=mcip_end_datetime, metfile_list=metfile_list, geo_file=geo_file, t_step=t_step, setup_only=False) 
         
 
-    def run_icon(self, type='regrid', coarse_grid_appl='coarse', run_hours=2, setup_only=False):
+    def run_icon(self, coarse_grid_appl='coarse', run_hours=2, setup_only=False):
         """
         Setup and run ICON, which produces initial conditions for CMAQ.
         """
@@ -257,11 +298,11 @@ class CMAQModel:
         icon_runtime = f'#> Source the config_cmaq file to set the run environment\n'
         icon_runtime += f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
         #> Code Version
-        icon_runtime += f'set VRSN     = v532\n'
+        icon_runtime += f'set VRSN     = {self.icon_vrsn}\n'
         #> Application Name                    
         icon_runtime += f'set APPL       = {self.appl}\n'
         #> Initial conditions type [profile|regrid]
-        icon_runtime += f'ICTYPE   = {type}\n'
+        icon_runtime += f'ICTYPE   = {self.icon_type}\n'
         #> check GRIDDESC file for GRID_NAME options
         icon_runtime += f'setenv GRID_NAME {self.grid_name}\n'
         #> grid description file path
@@ -285,12 +326,12 @@ class CMAQModel:
         icon_files += f'    setenv CTM_CONC_1 {self.CMAQ_DATA}/{coarse_grid_appl}/output_{self.cctm_runid}/CCTM_CONC_{self.cctm_runid}_{self.start_datetime.strftime("%Y%m%d")}.nc\n'
         icon_files += f'    setenv MET_CRO_3D_CRS {self.CMAQ_DATA}/{coarse_grid_appl}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}\n'
         icon_files += f'    setenv MET_CRO_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}.nc\n'
-        icon_files += f'    setenv INIT_CONC_1    "$OUTDIR/ICON_$VRSN_{self.appl}_{type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
+        icon_files += f'    setenv INIT_CONC_1    "$OUTDIR/ICON_{self.icon_vrsn}_{self.appl}_{self.icon_type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
         icon_files += f'endif\n'
         icon_files += f'if ( $ICON_TYPE == profile ) then\n'
         icon_files += f'    setenv IC_PROFILE $BLD/avprofile_cb6r3m_ae7_kmtbr_hemi2016_v53beta2_m3dry_col051_row068.csv\n'
         icon_files += f'    setenv MET_CRO_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METCRO3D_{self.start_datetime.strftime("%y%m%d")}.nc\n'
-        icon_files += f'    setenv INIT_CONC_1    "$OUTDIR/ICON_$VRSN_{self.appl}_{type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
+        icon_files += f'    setenv INIT_CONC_1    "$OUTDIR/ICON_{self.icon_vrsn}_{self.appl}_{self.icon_type}_{self.start_datetime.strftime("%Y%m%d")} -v"\n'
         icon_files += f'endif\n'
         utils.write_to_template(run_icon_path, icon_files, id='%INFILES%')
 
@@ -318,7 +359,7 @@ class CMAQModel:
                 print(f'ICON ran in: {utils.strfdelta(elapsed)}')
         return True
 
-    def run_bcon(self, bcon_start_datetime=None, bcon_end_datetime=None, type='regrid', coarse_grid_appl='coarse', run_hours=2, bcon_vrsn='v532', setup_only=False):
+    def run_bcon(self, bcon_start_datetime=None, bcon_end_datetime=None, coarse_grid_appl='coarse', run_hours=2, setup_only=False):
         """
         Setup and run BCON, which produces boundary conditions for CMAQ.
         """
@@ -339,9 +380,12 @@ class CMAQModel:
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_bcon.csh', run_bcon_path)
         os.system(cmd)
 
+        # Specify the BCON log
+        bcon_log_file = f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}_{bcon_start_datetime.strftime("%Y%m%d")}.log'
+
         # Write Slurm info
         bcon_slurm =  f'#SBATCH -J bcon_{self.appl}		# Job name\n'
-        bcon_slurm += f'#SBATCH -o {self.BCON_SCRIPTS}/run_bcon_{self.appl}_{bcon_start_datetime.strftime("%Y%m%d")}.log\n'
+        bcon_slurm += f'#SBATCH -o {bcon_log_file}\n'
         bcon_slurm += f'#SBATCH --nodes=1		# Total number of nodes requested\n' 
         bcon_slurm += f'#SBATCH --ntasks=1		# Total number of tasks to be configured for.\n' 
         bcon_slurm += f'#SBATCH --tasks-per-node=1	# sets number of tasks to run on each node.\n' 
@@ -356,11 +400,11 @@ class CMAQModel:
         bcon_runtime =  f'#> Source the config_cmaq file to set the run environment\n'
         bcon_runtime += f'source {self.CMAQ_HOME}/config_cmaq.csh {self.compiler} {self.compiler_vrsn}\n'
         bcon_runtime += f'#> Code Version\n'
-        bcon_runtime += f'set VRSN     = {bcon_vrsn}\n'
+        bcon_runtime += f'set VRSN     = {self.bcon_vrsn}\n'
         bcon_runtime += f'#> Application Name\n'                    
         bcon_runtime += f'set APPL     = {self.appl}\n'
         bcon_runtime += f'#> Boundary condition type [profile|regrid]\n'                     
-        bcon_runtime += f'set BCTYPE   = {type}\n'
+        bcon_runtime += f'set BCTYPE   = {self.bcon_type}\n'
         bcon_runtime += f'#> check GRIDDESC file for GRID_NAME options\n'                 
         bcon_runtime += f'setenv GRID_NAME {self.grid_name}\n'
         bcon_runtime += f'#> grid description file\n'                    
@@ -374,56 +418,59 @@ class CMAQModel:
         bcon_runtime += f'#> output file directory\n'   
         bcon_runtime += f'set OUTDIR   = {self.CMAQ_DATA}/{self.appl}/bcon\n'
         bcon_runtime += f'#> Set the build directory:\n'
-        bcon_runtime += f'set BLD      = {self.CMAQ_HOME}/PREP/bcon/scripts/BLD_BCON_{bcon_vrsn}_{self.compiler}{self.compiler_vrsn}\n'
-        bcon_runtime += f'set EXEC     = BCON_{bcon_vrsn}.exe\n'
+        bcon_runtime += f'set BLD      = {self.CMAQ_HOME}/PREP/bcon/scripts/BLD_BCON_{self.bcon_vrsn}_{self.compiler}{self.compiler_vrsn}\n'
+        bcon_runtime += f'set EXEC     = BCON_{self.bcon_vrsn}.exe\n'
         bcon_runtime += f'#> define the model execution id\n'
         bcon_runtime += f'setenv EXECUTION_ID $EXEC\n'
         utils.write_to_template(run_bcon_path, bcon_runtime, id='%RUNTIME%')    
 
         # Write input file info to the run script
-        bcon_files =  f'    setenv SDATE           {bcon_start_datetime.strftime("%Y%j")}\n'
-        bcon_files += f'    setenv STIME           {bcon_start_datetime.strftime("%H%M%S")}\n'
-        bcon_files += f'    setenv RUNLEN          {utils.strfdelta(bcon_delt, fmt="{H:02}{M:02}{S:02}")}\n'   
+        # bcon_files =  f'    setenv SDATE           {bcon_start_datetime.strftime("%Y%j")}\n'
+        # bcon_files += f'    setenv STIME           {bcon_start_datetime.strftime("%H%M%S")}\n'
+        # bcon_files += f'    setenv RUNLEN          {utils.strfdelta(bcon_delt, fmt="{H:02}{M:02}{S:02}")}\n'   
         
-        bcon_files += f' if ( $BCON_TYPE == regrid ) then\n'
-        bcon_files += f'     setenv CTM_CONC_1 {self.CMAQ_DATA}/{coarse_grid_appl}/output_CCTM_{coarse_runid}/CCTM_CONC_{coarse_runid}_{self.start_datetime.strftime("%Y%m%d")}.nc\n'
+        bcon_files  = f' if ( $BCON_TYPE == regrid ) then\n'
+        bcon_files += f'     setenv CTM_CONC_1 {self.CMAQ_DATA}/{coarse_grid_appl}/output_CCTM_{coarse_runid}/CCTM_CONC_{coarse_runid}_{bcon_start_datetime.strftime("%Y%m%d")}.nc\n'
         bcon_files += f'     setenv MET_CRO_3D_CRS {self.CMAQ_DATA}/{coarse_grid_appl}/mcip/METCRO3D_{bcon_start_datetime.strftime("%y%m%d")}.nc\n'
         bcon_files += f'     setenv MET_BDY_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METBDY3D_{bcon_start_datetime.strftime("%y%m%d")}.nc\n'
-        bcon_files += f'     setenv BNDY_CONC_1    "$OUTDIR/BCON_{bcon_vrsn}_{self.appl}_{type}_{bcon_start_datetime.strftime("%Y%m%d")} -v"\n'
+        bcon_files += f'     setenv BNDY_CONC_1    "$OUTDIR/BCON_{self.bcon_vrsn}_{self.appl}_{self.bcon_type}_{bcon_start_datetime.strftime("%Y%m%d")} -v"\n'
         bcon_files += f' endif\n'
         
         bcon_files += f' if ( $BCON_TYPE == profile ) then\n'
         bcon_files += f'     setenv BC_PROFILE $BLD/avprofile_cb6r3m_ae7_kmtbr_hemi2016_v53beta2_m3dry_col051_row068.csv\n'
         bcon_files += f'     setenv MET_BDY_3D_FIN {self.CMAQ_DATA}/{self.appl}/mcip/METBDY3D_{bcon_start_datetime.strftime("%y%m%d")}.nc\n'
-        bcon_files += f'     setenv BNDY_CONC_1    "$OUTDIR/BCON_{bcon_vrsn}_{self.appl}_{type}_{bcon_start_datetime.strftime("%Y%m%d")} -v"\n'
+        bcon_files += f'     setenv BNDY_CONC_1    "$OUTDIR/BCON_{self.bcon_vrsn}_{self.appl}_{self.bcon_type}_{bcon_start_datetime.strftime("%Y%m%d")} -v"\n'
         bcon_files += f' endif\n'
         utils.write_to_template(run_bcon_path, bcon_files, id='%INFILES%')
         
         ## RUN BCON
         if not setup_only:
+            # Remove log from previous identical run
+            os.system(self.CMD_RM % (bcon_log_file))
+            # Submit BCON to the scheduler
             CMD_BCON = f'sbatch --requeue {run_bcon_path}'
             os.system(CMD_BCON)
-            # Sleep until the run_bcon_{self.appl}.log file exists
-            while not os.path.exists(f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}_{bcon_start_datetime.strftime("%Y%m%d")}.log'):   
-                time.sleep(1)
             # Begin BCON simulation clock
             simstart = datetime.datetime.now()
+            # Sleep until the run_bcon_{self.appl}.log file exists
+            while not os.path.exists(bcon_log_file):   
+                time.sleep(1)
             if self.verbose:
                 print('Starting BCON at: ' + str(simstart))
                 sys.stdout.flush()
-            bcon_sim = self.finish_check('bcon', custom_log=f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}_{bcon_start_datetime.strftime("%Y%m%d")}.log')
+            bcon_sim = self.finish_check('bcon', custom_log=bcon_log_file)
             while bcon_sim != 'complete':
                 if bcon_sim == 'failed':
                     return False
                 else:
                     time.sleep(2)
-                    bcon_sim = self.finish_check('bcon', custom_log=f'{self.BCON_SCRIPTS}/run_bcon_{self.appl}_{bcon_start_datetime.strftime("%Y%m%d")}.log')
+                    bcon_sim = self.finish_check('bcon', custom_log=bcon_log_file)
             elapsed = datetime.datetime.now() - simstart
             if self.verbose:
                 print(f'BCON ran in: {utils.strfdelta(elapsed)}')
         return True
 
-    def run_bcon_multiday(self, type='regrid', coarse_grid_appl='coarse', run_hours=2, bcon_vrsn='v532', setup_only=False):
+    def run_bcon_multiday(self, coarse_grid_appl='coarse', run_hours=2, setup_only=False):
         """
         Run BCON over multiple days. Per CMAQ convention, BCON will run for the same length
         as CCTM -- i.e., a single day. 
@@ -434,13 +481,15 @@ class CMAQModel:
             bcon_start_datetime = self.start_datetime + datetime.timedelta(day_no)
             bcon_end_datetime = self.start_datetime + datetime.timedelta(day_no + 1)
             if self.verbose:
-                print(f'Working on BCON for {bcon_start_datetime}')
+                print(f'--> Working on BCON for {bcon_start_datetime}')
 
             # run bcon for that day
-            self.run_bcon(bcon_start_datetime=bcon_start_datetime, bcon_end_datetime=bcon_end_datetime, type=type,
-                coarse_grid_appl=coarse_grid_appl, run_hours=run_hours, bcon_vrsn=bcon_vrsn, setup_only=setup_only)
+            self.run_bcon(bcon_start_datetime=bcon_start_datetime, bcon_end_datetime=bcon_end_datetime,
+                coarse_grid_appl=coarse_grid_appl, run_hours=run_hours, setup_only=setup_only)
 
-    def setup_inpdir(self):
+    def setup_inpdir(self, n_emis_gr=2, gr_emis_labs=['all', 'rwc'], n_emis_pt=9, 
+        pt_emis_labs=['ptnonertac', 'ptertac', 'othpt', 'ptagfire', 'ptfire', 'ptfire_othna', 'pt_oilgas', 'cmv_c3_12', 'cmv_c1c2_12'],
+        stkgrps_daily=[False, False, False, True, True, True, False, False, False]):
         """
         Links all the necessary files to the locations in INPDIR where CCTM expects to find them. 
         """
@@ -453,6 +502,7 @@ class CMAQModel:
 
         # Make lists of representative days
         # These are necessary because some of the point sectors use representative days
+        # Right now, this simply links the smoke merge dates, but it could actually use the representative days at some point in the future
         utils.make_dirs(f'{self.CCTM_INPDIR}/emis')
         cmd = 'echo "Starting to link files..."'
         for date in start_datetimes_lst:
@@ -470,7 +520,7 @@ class CMAQModel:
         for date in start_datetimes_lst:
             local_bc_file = f'{self.LOC_BC}/*{date.strftime("%y%m%d")}'
             cmd = cmd + '; ' + self.CMD_LN % (local_bc_file, f'{self.ICBC}/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_bc_file)
+            cmd_gunzip = cmd_gunzip + ' >/dev/null 2>&1; ' +  self.CMD_GUNZIP % (local_bc_file)
         
         # Link Initial Conditions to self.CCTM_OUTDIR
         utils.make_dirs(self.CCTM_OUTDIR)
@@ -480,95 +530,49 @@ class CMAQModel:
         local_init_medc_1_file = f'{self.LOC_IC}/CCTM_MEDIA_CONC_*{yesterday.strftime("%y%m%d")}.nc'
         cmd = cmd + '; ' + self.CMD_LN % (local_init_medc_1_file, f'{self.CCTM_OUTDIR}/CCTM_MEDIA_CONC_{self.cctm_runid}_{yesterday.strftime("%Y%m%d")}.nc')
 
-        # Link gridded emissions to $INPDIR/emis/gridded_area/gridded
+        # Link gridded emissions to $INPDIR/emis/gridded_area
         utils.make_dirs(self.CCTM_GRIDDED)
-        for date in start_datetimes_lst:
-            local_gridded_file = f'{self.LOC_GRIDDED}/emis_mole_all_20*{date.strftime("%y%m%d")}*'
-            cmd = cmd + '; ' + self.CMD_LN % (local_gridded_file, f'{self.CCTM_GRIDDED}/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_gridded_file)
-
-        # Link residential wood combustion to $INPDIR/emis/gridded_area/rwc
-        utils.make_dirs(self.CCTM_RWC)
-        for date in start_datetimes_lst:
-            local_rwc_file = f'{self.LOC_RWC}/emis_mole_rwc_20*{date.strftime("%y%m%d")}*'
-            cmd = cmd + '; ' + self.CMD_LN % (local_rwc_file, f'{self.CCTM_RWC}/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_rwc_file)
+        for ii in range(n_emis_gr + 1):
+            # Get the name of the directory where theis gridded sector is stored
+            gr_emis_dir = self.dirpaths.get(f'LOC_GR_EMIS_{str(ii).zfill(3)}')
+            if self.verbose:
+                print(f'Linking gridded emissions from:\n{gr_emis_dir}')
+            for date in start_datetimes_lst:
+                local_gridded_file = f'{gr_emis_dir}/emis_mole_{gr_emis_labs[ii-1]}_{date.strftime("%Y%m%d")}*'
+                if self.verbose:
+                    print(f'... Linking: {local_gridded_file}')
+                cmd = cmd + '; ' + self.CMD_LN % (local_gridded_file, f'{self.CCTM_GRIDDED}/')
+                cmd_gunzip = cmd_gunzip + ' >/dev/null 2>&1; ' +  self.CMD_GUNZIP % (local_gridded_file)
 
         # Link point source emissions to $INPDIR/emis/inln_point 
         # and the associated stack groups to $INPDIR/emis/inln_point/stack_groups
         utils.make_dirs(f'{self.CCTM_PT}/stack_groups')
-        # Link the ptnonertac sector
-        for date in start_datetimes_lst:
-            local_ptnonertac_file = f'{self.LOC_IN_PT}/ptnonertac_hourly/inln_mole_ptnonertac_20*{date.strftime("%y%m%d")}*'
-            cmd = cmd + '; ' + self.CMD_LN % (local_ptnonertac_file, f'{self.CCTM_PT}/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptnonertac_file)
-        local_ptnonertac_stk_file = f'{self.LOC_IN_PT}/ptnonertac_hourly/stack_groups_ptnonertac_*'
-        cmd = cmd + '; ' + self.CMD_LN % (local_ptnonertac_stk_file, f'{self.CCTM_PT}/stack_groups/')
-        cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptnonertac_stk_file)
-        # Link the ptertac sector
-        for date in start_datetimes_lst:
-            local_ptertac_file = f'{self.LOC_ERTAC}/inln_mole_ptertac_20*{date.strftime("%y%m%d")}*'
-            cmd = cmd + '; ' + self.CMD_LN % (local_ptertac_file, f'{self.CCTM_PT}/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptertac_file)
-        local_ptertac_stk_file = f'{self.LOC_ERTAC}/stack_groups_ptertac_*'
-        cmd = cmd + '; ' + self.CMD_LN % (local_ptertac_stk_file, f'{self.CCTM_PT}/stack_groups/')
-        cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptertac_stk_file)
-        # Link the othpt sector (requires representative days, so we use mwdss_N_lst date list)
-        for date in mwdss_N_lst:
-            local_othpt_file = f'{self.LOC_IN_PT}/othpt/inln_mole_othpt_20*{date.strftime("%y%m%d")}*'
-            cmd = cmd + '; ' + self.CMD_LN % (local_othpt_file, f'{self.CCTM_PT}/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_othpt_file)
-        local_othpt_stk_file = f'{self.LOC_IN_PT}/othpt/stack_groups_othpt_*'
-        cmd = cmd + '; ' + self.CMD_LN % (local_othpt_stk_file, f'{self.CCTM_PT}/stack_groups/')
-        cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_othpt_stk_file)
-        # Link the ptagfire sector
-        for date in start_datetimes_lst:
-            local_ptagfire_file = f'{self.LOC_IN_PT}/ptagfire/inln_mole_ptagfire_20*{date.strftime("%y%m%d")}*'
-            cmd = cmd + '; ' + self.CMD_LN % (local_ptagfire_file, f'{self.CCTM_PT}/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptagfire_file)
-            local_ptagfire_stk_file = f'{self.LOC_IN_PT}/ptagfire/stack_groups_ptagfire_20*{date.strftime("%y%m%d")}*'
-            cmd = cmd + '; ' + self.CMD_LN % (local_ptagfire_stk_file, f'{self.CCTM_PT}/stack_groups/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptagfire_stk_file)
-        # Link the ptfire sector
-        for date in start_datetimes_lst:
-            local_ptfire_file = f'{self.LOC_IN_PT}/ptfire/inln_mole_ptfire_20*{date.strftime("%y%m%d")}*'
-            cmd = cmd + '; ' + self.CMD_LN % (local_ptfire_file, f'{self.CCTM_PT}/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptfire_file)
-            local_ptfire_stk_file = f'{self.LOC_IN_PT}/ptfire/stack_groups_ptfire_20*{date.strftime("%y%m%d")}*'
-            cmd = cmd + '; ' + self.CMD_LN % (local_ptfire_stk_file, f'{self.CCTM_PT}/stack_groups/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptfire_stk_file)
-        # Link the ptfire_othna sector
-        for date in start_datetimes_lst:
-            local_ptfire_othna_file = f'{self.LOC_IN_PT}/ptfire_othna/inln_mole_ptfire_othna_20*{date.strftime("%y%m%d")}*'
-            cmd = cmd + '; ' + self.CMD_LN % (local_ptfire_othna_file, f'{self.CCTM_PT}/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptfire_othna_file)
-            local_ptfire_othna_stk_file = f'{self.LOC_IN_PT}/ptfire_othna/stack_groups_ptfire_othna_20*{date.strftime("%y%m%d")}*'
-            cmd = cmd + '; ' + self.CMD_LN % (local_ptfire_othna_stk_file, f'{self.CCTM_PT}/stack_groups/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_ptfire_othna_stk_file)
-        # Link the pt_oilgas sector (requires representative days, so we use the mwdss_Y_lst date list)
-        for date in mwdss_Y_lst:
-            local_pt_oilgas_file = f'{self.LOC_IN_PT}/pt_oilgas/inln_mole_pt_oilgas_20*{date.strftime("%y%m%d")}*'
-            cmd = cmd + '; ' + self.CMD_LN % (local_pt_oilgas_file, f'{self.CCTM_PT}/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_pt_oilgas_file)
-        local_pt_oilgas_stk_file = f'{self.LOC_IN_PT}/pt_oilgas/stack_groups_pt_oilgas_*'
-        cmd = cmd + '; ' + self.CMD_LN % (local_pt_oilgas_stk_file, f'{self.CCTM_PT}/stack_groups/')
-        cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_pt_oilgas_stk_file)
-        # Link the cmv_c3_12 sector
-        for date in start_datetimes_lst:
-            local_cmv_c3_12_file = f'{self.LOC_IN_PT}/cmv_c3_12/inln_mole_cmv_c3_12_20*{date.strftime("%y%m%d")}*'
-            cmd = cmd + '; ' + self.CMD_LN % (local_cmv_c3_12_file, f'{self.CCTM_PT}/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_cmv_c3_12_file)
-        local_cmv_c3_12_stk_file = f'{self.LOC_IN_PT}/cmv_c3_12/stack_groups_cmv_c3_12_*'
-        cmd = cmd + '; ' + self.CMD_LN % (local_cmv_c3_12_stk_file, f'{self.CCTM_PT}/stack_groups/')
-        cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_cmv_c3_12_stk_file)
-        # Link the cmv_c1c2_12 sector
-        for date in start_datetimes_lst:
-            lcoal_cmv_c1c2_12_file = f'{self.LOC_IN_PT}/cmv_c1c2_12/inln_mole_cmv_c1c2_12_20*{date.strftime("%y%m%d")}*'
-            cmd = cmd + '; ' + self.CMD_LN % (lcoal_cmv_c1c2_12_file, f'{self.CCTM_PT}/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (lcoal_cmv_c1c2_12_file)
-        lcoal_cmv_c1c2_12_stk_file = f'{self.LOC_IN_PT}/cmv_c1c2_12/stack_groups_cmv_c1c2_12_*'
-        cmd = cmd + '; ' + self.CMD_LN % (lcoal_cmv_c1c2_12_stk_file, f'{self.CCTM_PT}/stack_groups/')
-        cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (lcoal_cmv_c1c2_12_stk_file)
+        for ii in range(n_emis_pt + 1):
+            if self.verbose:
+                    print(f'Linking the {pt_emis_labs[ii-1]} sector emissions')
+            for date in start_datetimes_lst:
+                # Link the day-dependent point sector emissions file
+                if pt_emis_labs[ii-1] == 'ptertac':
+                    local_point_file = f'{self.LOC_ERTAC}/inln_mole_ptertac_{date.strftime("%Y%m%d")}*'
+                else:
+                    local_point_file = f'{self.LOC_IN_PT}/{pt_emis_labs[ii-1]}/inln_mole_{pt_emis_labs[ii-1]}_{date.strftime("%Y%m%d")}*'
+                if self.verbose:
+                    print(f'... Linking: {local_point_file}')
+                cmd = cmd + '; ' + self.CMD_LN % (local_point_file, f'{self.CCTM_PT}/')
+                cmd_gunzip = cmd_gunzip + ' >/dev/null 2>&1; ' +  self.CMD_GUNZIP % (local_point_file)
+                # Link the day-dependent stack groups file (e.g., for fire sectors)
+                if stkgrps_daily[ii-1]:
+                    local_stkgrps_file = f'{self.LOC_IN_PT}/{pt_emis_labs[ii-1]}/stack_groups_{pt_emis_labs[ii-1]}_{date.strftime("%Y%m%d")}*'
+                    cmd = cmd + '; ' + self.CMD_LN % (local_stkgrps_file, f'{self.CCTM_PT}/stack_groups/')
+                    cmd_gunzip = cmd_gunzip + ' >/dev/null 2>&1; ' +  self.CMD_GUNZIP % (local_stkgrps_file)
+            # Link the day-independent stack groups file
+            if not stkgrps_daily[ii-1]:
+                if pt_emis_labs[ii-1] == 'ptertac':
+                    local_stkgrps_file = f'{self.LOC_ERTAC}/stack_groups_ptertac_*'
+                else:
+                    local_stkgrps_file = f'{self.LOC_IN_PT}/{pt_emis_labs[ii-1]}/stack_groups_{pt_emis_labs[ii-1]}_*'
+                cmd = cmd + '; ' + self.CMD_LN % (local_stkgrps_file, f'{self.CCTM_PT}/stack_groups/')
+                cmd_gunzip = cmd_gunzip + ' >/dev/null 2>&1; ' +  self.CMD_GUNZIP % (local_stkgrps_file)
         
         # Link sector list to $INPDIR/emis
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.SECTORLIST}', f'{self.CCTM_INPDIR}/emis')
@@ -578,24 +582,37 @@ class CMAQModel:
         for date in start_datetimes_lst:
             local_festc_file = f'{self.LOC_LAND}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_time20*{date.strftime("%y%m%d")}*'
             cmd = cmd + '; ' + self.CMD_LN % (local_festc_file, f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic/')
-            cmd_gunzip = cmd_gunzip + '; ' +  self.CMD_GUNZIP % (local_festc_file)
+            cmd_gunzip = cmd_gunzip + ' >/dev/null 2>&1; ' +  self.CMD_GUNZIP % (local_festc_file)
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_soil.12otc2.ncf', f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic/')
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/12US1_surf.12otc2.ncf', f'{self.CCTM_LAND}/')
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/beld41_feb2017_waterfix_envcan_12US2.12OTC2.ncf', f'{self.CCTM_LAND}/')
         
         # Run the gunzip commands
+        cmd_gunzip += ' >/dev/null 2>&1'
         os.system(cmd_gunzip)
         
         # Run the link commands
         os.system(cmd)
 
         # Remove broken links from the input dir
-        os.system(f'find {self.CCTM_INPDIR} -xtype l -delete')    
+        # os.system(f'find {self.CCTM_INPDIR} -xtype l -delete')    
     
-    def run_cctm(self, delete_existing_output='TRUE', new_sim='FALSE', tstep='010000', cctm_hours=24, n_procs=16, gb_mem=50, run_hours=24, setup_only=False):
+    def run_cctm(self, n_emis_gr=2, gr_emis_labs=['all', 'rwc'], n_emis_pt=9, 
+        pt_emis_labs=['ptnonertac', 'ptertac', 'othpt', 'ptagfire', 'ptfire', 'ptfire_othna', 'pt_oilgas', 'cmv_c3_12', 'cmv_c1c2_12'],
+        stkgrps_daily=[False, False, False, True, True, True, False, False, False],
+        stkcaseg = '12US1_2016fh_16j', stkcasee = '12US1_cmaq_cb6_2016fh_16j', 
+        delete_existing_output='TRUE', new_sim='FALSE', tstep='010000', 
+        cctm_hours=24, n_procs=16, gb_mem=50, run_hours=24, setup_only=False):
         """
         Setup and run CCTM, CMAQ's chemical transport model.
         """
+        # Check that a consistent number of labels were passed
+        if len(gr_emis_labs) != n_emis_gr:
+            raise ValueError(f'n_emis_gr ({n_emis_gr}) should match the length of gr_emis_labs (len={len(gr_emis_labs)})')
+        if len(pt_emis_labs) != n_emis_pt:
+            raise ValueError(f'n_emis_pt ({n_emis_pt}) should match the length of pt_emis_labs (len={len(pt_emis_labs)})')
+        if len(stkgrps_daily) != n_emis_pt:
+            raise ValueError(f'n_emis_pt ({n_emis_pt}) should match the length of stkgrps_daily (len={len(stkgrps_daily)})')
         ## SETUP CCTM
         # Copy the template CCTM run script to the scripts directory
         run_cctm_path = f'{self.CCTM_SCRIPTS}/run_cctm.csh'
@@ -606,7 +623,8 @@ class CMAQModel:
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_submit_cctm.csh', submit_cctm_path)
         os.system(cmd)
         # Setup the input directory using the setup_inpdir method
-        self.setup_inpdir()
+        self.setup_inpdir(n_emis_gr=n_emis_gr, gr_emis_labs=gr_emis_labs, 
+            n_emis_pt=n_emis_pt, pt_emis_labs=pt_emis_labs,stkgrps_daily=stkgrps_daily)
 
         # Write CCTM setup options to the run script
         cctm_runtime =  f'#> Toggle Diagnostic Mode which will print verbose information to standard output\n'
@@ -616,19 +634,19 @@ class CMAQModel:
         cctm_runtime += f'#> Change back to the CCTM scripts directory\n'
         cctm_runtime += f'cd {self.CCTM_SCRIPTS}\n'
         cctm_runtime += f'#> Set General Parameters for Configuring the Simulation\n'
-        cctm_runtime += f'set VRSN      = {self.cctm_vrsn}              #> Code Version - note this must be updated if using ISAM or DDM\n'
-        cctm_runtime += f'set PROC      = mpi               #> serial or mpi\n'
-        cctm_runtime += f'set MECH      = {self.chem_mech}      #> Mechanism ID\n'
-        cctm_runtime += f'set APPL      = {self.appl}  #> Application Name (e.g. Gridname)\n\n'
+        cctm_runtime += f'set VRSN      = {self.cctm_vrsn}          #> Code Version - note this must be updated if using ISAM or DDM\n'
+        cctm_runtime += f'set PROC      = mpi                       #> serial or mpi\n'
+        cctm_runtime += f'set MECH      = {self.chem_mech}          #> Mechanism ID\n'
+        cctm_runtime += f'set APPL      = {self.appl}               #> Application Name (e.g. Gridname)\n\n'
         cctm_runtime += f'#> Define RUNID as any combination of parameters above or others. By default,\n'
         cctm_runtime += f'#> this information will be collected into this one string, $RUNID, for easy\n'
         cctm_runtime += f'#> referencing in output binaries and log files as well as in other scripts.\n'
         cctm_runtime += f'setenv RUNID  {self.cctm_runid}\n\n'
         cctm_runtime += f'#> Set Working, Input, and Output Directories\n'
-        cctm_runtime += f'setenv WORKDIR {self.CCTM_SCRIPTS}    #> Working Directory. Where the runscript is.\n'
-        cctm_runtime += f'setenv OUTDIR  {self.CCTM_OUTDIR}  #> Output Directory\n'
-        cctm_runtime += f'setenv INPDIR  {self.CCTM_INPDIR} #> Input Directory\n'
-        cctm_runtime += f'setenv GRIDDESC {self.GRIDDESC}    #> grid description file\n'
+        cctm_runtime += f'setenv WORKDIR {self.CCTM_SCRIPTS}        #> Working Directory. Where the runscript is.\n'
+        cctm_runtime += f'setenv OUTDIR  {self.CCTM_OUTDIR}         #> Output Directory\n'
+        cctm_runtime += f'setenv INPDIR  {self.CCTM_INPDIR}         #> Input Directory\n'
+        cctm_runtime += f'setenv GRIDDESC {self.GRIDDESC}           #> grid description file\n'
         cctm_runtime += f'setenv GRID_NAME {self.grid_name}         #> check GRIDDESC file for GRID_NAME options\n\n'
         cctm_runtime += f'#> Keep or Delete Existing Output Files\n'
         cctm_runtime += f'set CLOBBER_DATA = {delete_existing_output}\n'
@@ -638,11 +656,11 @@ class CMAQModel:
         cctm_time =  f'#> Set Start and End Days for looping\n'
         cctm_time += f'setenv NEW_START {new_sim}        #> Set to FALSE for model restart\n'
         cctm_time += f'set START_DATE = "{self.start_datetime.strftime("%Y-%m-%d")}"     #> beginning date\n'
-        cctm_time += f'set END_DATE   = "{self.end_datetime.strftime("%Y-%m-%d")}"     #> ending date\n\n'
+        cctm_time += f'set END_DATE   = "{self.end_datetime.strftime("%Y-%m-%d")}"       #> ending date\n\n'
         cctm_time += f'#> Set Timestepping Parameters\n'
-        cctm_time += f'set STTIME     = {self.start_datetime.strftime("%H%M%S")}            #> beginning GMT time (HHMMSS)\n'
-        cctm_time += f'set NSTEPS     = {cctm_hours}0000            #> time duration (HHMMSS) for this run\n'
-        cctm_time += f'set TSTEP      = {tstep}            #> output time step interval (HHMMSS)\n'
+        cctm_time += f'set STTIME     = {self.start_datetime.strftime("%H%M%S")}         #> beginning GMT time (HHMMSS)\n'
+        cctm_time += f'set NSTEPS     = {cctm_hours}0000                                 #> time duration (HHMMSS) for this run\n'
+        cctm_time += f'set TSTEP      = {tstep}                                          #> output time step interval (HHMMSS)\n'
         utils.write_to_template(run_cctm_path, cctm_time, id='%TIME%')
 
         # Control domain subsetting among processors -- these will always be closest to a square
@@ -664,18 +682,73 @@ class CMAQModel:
         utils.write_to_template(run_cctm_path, cctm_proc, id='%PROC%')
 
         # Write CCTM input input directory information
-        cctm_files  = f'set ICpath    = {self.ICBC}                        #> initial conditions input directory\n' 
+        cctm_files  = f'set ICpath    = {self.CCTM_OUTDIR}                 #> initial conditions input directory\n' 
         cctm_files += f'set BCpath    = {self.ICBC}                        #> boundary conditions input directory\n'
-        cctm_files += f'set EMISpath  = {self.CCTM_GRIDDED}   #> gridded emissions input directory\n'
-        cctm_files += f'set EMISpath2 = {self.CCTM_RWC}       #> gridded surface residential wood combustion emissions directory\n'
-        cctm_files += f'set IN_PTpath = {self.CCTM_PT}             #> point source emissions input directory\n'
-        cctm_files += f'set IN_LTpath = $INPDIR/lightning                   #> lightning NOx input directory\n'
-        cctm_files += f'set METpath   = {self.MCIP_OUT}                #> meteorology input directory\n' 
-        cctm_files += f'#set JVALpath  = $INPDIR/jproc                      #> offline photolysis rate table directory\n'
-        cctm_files += f'set OMIpath   = $BLD                                #> ozone column data for the photolysis model\n'
-        cctm_files += f'set LUpath    = {self.CCTM_LAND}                        #> BELD landuse data for windblown dust model\n'
-        cctm_files += f'set SZpath    = {self.CCTM_LAND}                        #> surf zone file for in-line seaspray emissions\n'
+        cctm_files += f'set IN_PTpath = {self.CCTM_PT}                     #> point source emissions input directory\n'
+        cctm_files += f'set IN_LTpath = $INPDIR/lightning                  #> lightning NOx input directory\n'
+        cctm_files += f'set METpath   = {self.MCIP_OUT}                    #> meteorology input directory\n' 
+        cctm_files += f'#set JVALpath  = $INPDIR/jproc                     #> offline photolysis rate table directory\n'
+        cctm_files += f'set OMIpath   = $BLD                               #> ozone column data for the photolysis model\n'
+        cctm_files += f'set LUpath    = {self.CCTM_LAND}                   #> BELD landuse data for windblown dust model\n'
+        cctm_files += f'set SZpath    = {self.CCTM_LAND}                   #> surf zone file for in-line seaspray emissions\n'
         utils.write_to_template(run_cctm_path, cctm_files, id='%FILES%')
+
+        # Write CCTM IC and BC information
+        # NOTE: the two spaces at the beginning of each of these lines are necessary 
+        # because this is all happening inside a loop in the csh script.
+        yesterday = self.start_datetime - datetime.timedelta(days=1)
+        cctm_icbc  = f'  #> Initial conditions\n'
+        cctm_icbc += f'  if ($NEW_START == true || $NEW_START == TRUE ) then\n'
+        cctm_icbc += f'      setenv ICON_{self.icon_vrsn}_{self.appl}_{self.icon_type}_{self.start_datetime.strftime("%Y%m%d")}\n'
+        cctm_icbc += f'      setenv INIT_MEDC_1 notused\n'
+        cctm_icbc += f'  else\n'
+        cctm_icbc += f'      set ICpath = $OUTDIR\n'
+        cctm_icbc += f'      setenv ICFILE CCTM_CGRID_{self.cctm_runid}_{yesterday.strftime("%Y%m%d")}.nc\n'
+        cctm_icbc += f'  #   setenv INIT_MEDC_1 $ICpath/CCTM_MEDIA_CONC_{self.cctm_runid}_{yesterday.strftime("%Y%m%d")}.nc\n'
+        cctm_icbc += f'      setenv INIT_MEDC_1 notused\n'
+        cctm_icbc += f'      setenv INITIAL_RUN N\n'
+        cctm_icbc += f'  endif\n'
+        cctm_icbc += f'  \n'
+        cctm_icbc += f'  #> Boundary conditions\n'
+        if self.new_bcon:
+            cctm_icbc += f'  set BCFILE = BCON_{self.bcon_vrsn}_{self.appl}_{self.bcon_type}_$YYYYMMDD\n'
+        else:
+            cctm_icbc += f'  set BCFILE = {self.filenames.get("BCFILE")}\n'
+        utils.write_to_template(run_cctm_path, cctm_icbc, id='%ICBC%')
+
+        # Write CCTM gridded emissions information
+        # NOTE: the two spaces at the beginning of each of these lines are necessary 
+        # because this is all happening inside a loop in the csh script.
+        cctm_gr  = f'  #> Gridded Emissions Files\n'
+        cctm_gr += f'  setenv N_EMIS_GR {n_emis_gr}                          #> Number of gridded emissions groups\n'
+        for ii in range(1, n_emis_gr + 1):
+            gr_emis_file = self.filenames.get(f'GR_EMIS_{str(ii).zfill(3)}')
+            cctm_gr += f'  setenv GR_EMIS_{str(ii).zfill(3)} {self.CCTM_GRIDDED}/{gr_emis_file}\n'
+            cctm_gr += f'  # Label each gridded emissions stream\n'
+            cctm_gr += f'  setenv GR_EMIS_LAB_{str(ii).zfill(3)} {gr_emis_labs[ii-1]}\n'
+            cctm_gr += f'  # Do not allow CMAQ to use gridded source files with dates that do not match the model date\n'
+            cctm_gr += f'  setenv GR_EM_SYM_DATE_{str(ii).zfill(3)} F\n'
+        utils.write_to_template(run_cctm_path, cctm_gr, id='%GRIDDED%')
+
+        # Write CCTM point source emissions information
+        # NOTE: the two spaces at the beginning of each of these lines are necessary 
+        # because this is all happening inside a loop in the csh script.
+        cctm_pt  = f'  #> In-line point emissions configuration\n'
+        cctm_pt += f'  setenv N_EMIS_PT {n_emis_pt}                          #> Number of elevated source groups\n'
+        cctm_pt += f'  set STKCASEG = {stkcaseg}                             # Stack Group Version Label\n'
+        cctm_pt += f'  set STKCASEE = {stkcasee}                             # Stack Emission Version Label\n'
+        for ii in range(1, n_emis_pt + 1):
+            stk_emis_file = self.filenames.get(f'STK_EMIS_{str(ii).zfill(3)}')
+            stk_grps_file = self.filenames.get(f'STK_GRPS_{str(ii).zfill(3)}')
+            cctm_pt += f'  # Time-Independent Stack Parameters for Inline Point Sources\n'
+            cctm_pt += f'  setenv STK_GRPS_{str(ii).zfill(3)} $IN_PTpath/stack_groups/{stk_grps_file}\n'
+            cctm_pt += f'  # Time-Dependent Emissions file\n'
+            cctm_pt += f'  setenv STK_EMIS_{str(ii).zfill(3)} $IN_PTpath/{stk_emis_file}\n'
+            cctm_pt += f'  # Label Each Emissions Stream\n'
+            cctm_pt += f'  setenv STK_EMIS_LAB_{str(ii).zfill(3)} {pt_emis_labs[ii-1]}\n'
+            cctm_pt += f'  # Allow CMAQ to Use Point Source files with dates that do not match the internal model date\n'
+            cctm_pt += f'  setenv STK_EM_SYM_DATE_{str(ii).zfill(3)} T\n'
+        utils.write_to_template(run_cctm_path, cctm_pt, id='%POINT%')
 
         # Write CCTM submission script
         cctm_sub =  f'#!/bin/csh\n'

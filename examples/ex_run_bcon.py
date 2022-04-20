@@ -11,27 +11,27 @@ start_datetime = 'August 06, 2016'  # first day that you want run
 end_datetime = 'August 14, 2016'  # DAY AFTER the last day you want run
 
 # Specify if you want to run the 12 km or the 4 km domain
-# appl = '2016_12OTC2'
-# appl = '2016Base_12OTC2'
 appl = '2016_4OTC2'
 # appl = '2016Base_4OTC2'
 
 # Specify if you want to run or just setup cctm
 setup_only = False
 
-# Define the coordinate name (must match that in GRIDDESC)
+# Specify the coordinate name (must match that in GRIDDESC)
 coord_name = 'LAM_40N97W'
-if appl == '2016_12OTC2':
-    grid_name = '12OTC2' 
-elif appl == '2016Base_12OTC2':
-    grid_name = '12OTC2'
-elif appl == '2016_4OTC2':
+if appl == '2016_4OTC2':
     grid_name = '4OTC2' 
 elif appl == '2016Base_4OTC2':
     grid_name = '4OTC2'
+
+# Specify the coarse grid application name
+if appl == '2016_4OTC2':
+    crs_grid_appl = '2016_12OTC2' 
+elif appl == '2016Base_4OTC2':
+    crs_grid_appl = '2016Base_12OTC2'
 
 # Create a CMAQModel object
 cmaq_sim = CMAQModel(start_datetime, end_datetime, appl, coord_name, grid_name, new_mcip=True, verbose=True)
 
 # Call the "run_bcon" method
-cmaq_sim.run_bcon_multiday(type='regrid', coarse_grid_appl='2016_12OTC2', run_hours=2, setup_only=False)
+cmaq_sim.run_bcon_multiday(type='regrid', coarse_grid_appl=crs_grid_appl, run_hours=2, setup_only=False)
