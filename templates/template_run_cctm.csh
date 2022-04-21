@@ -106,8 +106,7 @@ setenv CTM_FST N             #> mosaic method to get land-use specific stomatal 
 setenv PX_VERSION Y          #> WRF PX LSM
 setenv CLM_VERSION N         #> WRF CLM LSM
 setenv NOAH_VERSION N        #> WRF NOAH LSM
-setenv CTM_ABFLUX Y          #> ammonia bi-directional flux for in-line deposition 
-                             #>    velocities [ default: N ]
+%PHYSICS%
 setenv CTM_BIDI_FERT_NH3 T   #> subtract fertilizer NH3 from emissions because it will be handled
                              #>    by the BiDi calculation [ default: Y ]
 setenv CTM_HGBIDI N          #> mercury bi-directional flux for in-line deposition 
@@ -320,9 +319,7 @@ while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
      setenv DUST_LU_2 $LUpath/beld4_12US1_459X299_output_tot_bench.nc
   endif
 
-  #> In-line sea spray emissions configuration
-#   setenv OCEAN_1 $SZpath/12US1_surf_bench.nc #> horizontal grid-dependent surf zone file
-  setenv OCEAN_1 $SZpath/12US1_surf.12otc2.ncf #> horizontal grid-dependent surf zone file
+%OCEAN%
 
   #> Bidirectional ammonia configuration
   if ( $CTM_ABFLUX == 'Y' ) then

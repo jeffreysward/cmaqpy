@@ -578,13 +578,14 @@ class CMAQModel:
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.SECTORLIST}', f'{self.CCTM_INPDIR}/emis')
 
         # Link files for emissions scaling and sea spray to $INPDIR/land
+        # NOTE: these could be made more general...
         utils.make_dirs(f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic')
         for date in start_datetimes_lst:
             local_festc_file = f'{self.LOC_LAND}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_time20*{date.strftime("%y%m%d")}*'
             cmd = cmd + '; ' + self.CMD_LN % (local_festc_file, f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic/')
             cmd_gunzip = cmd_gunzip + ' >/dev/null 2>&1; ' +  self.CMD_GUNZIP % (local_festc_file)
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_soil.12otc2.ncf', f'{self.CCTM_LAND}/toCMAQ_festc1.4_epic/')
-        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/12US1_surf.12otc2.ncf', f'{self.CCTM_LAND}/')
+        cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/{self.filenames.get("OCEAN_1")}', f'{self.CCTM_LAND}/')
         cmd = cmd + '; ' + self.CMD_LN % (f'{self.LOC_LAND}/beld41_feb2017_waterfix_envcan_12US2.12OTC2.ncf', f'{self.CCTM_LAND}/')
         
         # Run the gunzip commands
@@ -600,6 +601,7 @@ class CMAQModel:
     def run_cctm(self, n_emis_gr=2, gr_emis_labs=['all', 'rwc'], n_emis_pt=9, 
         pt_emis_labs=['ptnonertac', 'ptertac', 'othpt', 'ptagfire', 'ptfire', 'ptfire_othna', 'pt_oilgas', 'cmv_c3_12', 'cmv_c1c2_12'],
         stkgrps_daily=[False, False, False, True, True, True, False, False, False],
+        ctm_abflux='Y',
         stkcaseg = '12US1_2016fh_16j', stkcasee = '12US1_cmaq_cb6_2016fh_16j', 
         delete_existing_output='TRUE', new_sim='FALSE', tstep='010000', 
         cctm_hours=24, n_procs=16, gb_mem=50, run_hours=24, setup_only=False):
@@ -681,6 +683,12 @@ class CMAQModel:
             raise ValueError
         utils.write_to_template(run_cctm_path, cctm_proc, id='%PROC%')
 
+        # Write CCTM physics information
+        # NOTE: at some point the number of physics options should be expanded. 
+        cctm_physics  = f'setenv CTM_ABFLUX {ctm_abflux}          #> ammonia bi-directional flux for in-line deposition\n' 
+        cctm_physics += f'                             #>    velocities [ default: N ]\n'
+        utils.write_to_template(run_cctm_path, cctm_physics, id='%PHYSICS%') 
+
         # Write CCTM input input directory information
         cctm_files  = f'set ICpath    = {self.CCTM_OUTDIR}                 #> initial conditions input directory\n' 
         cctm_files += f'set BCpath    = {self.ICBC}                        #> boundary conditions input directory\n'
@@ -696,15 +704,14 @@ class CMAQModel:
         # Write CCTM IC and BC information
         # NOTE: the two spaces at the beginning of each of these lines are necessary 
         # because this is all happening inside a loop in the csh script.
-        yesterday = self.start_datetime - datetime.timedelta(days=1)
         cctm_icbc  = f'  #> Initial conditions\n'
         cctm_icbc += f'  if ($NEW_START == true || $NEW_START == TRUE ) then\n'
         cctm_icbc += f'      setenv ICON_{self.icon_vrsn}_{self.appl}_{self.icon_type}_{self.start_datetime.strftime("%Y%m%d")}\n'
         cctm_icbc += f'      setenv INIT_MEDC_1 notused\n'
         cctm_icbc += f'  else\n'
         cctm_icbc += f'      set ICpath = $OUTDIR\n'
-        cctm_icbc += f'      setenv ICFILE CCTM_CGRID_{self.cctm_runid}_{yesterday.strftime("%Y%m%d")}.nc\n'
-        cctm_icbc += f'  #   setenv INIT_MEDC_1 $ICpath/CCTM_MEDIA_CONC_{self.cctm_runid}_{yesterday.strftime("%Y%m%d")}.nc\n'
+        cctm_icbc +=  '      setenv ICFILE CCTM_CGRID_${RUNID}_${YESTERDAY}.nc\n'
+        cctm_icbc +=  '  #   setenv INIT_MEDC_1 $ICpath/CCTM_MEDIA_CONC_${RUNID}_${YESTERDAY}.nc\n'
         cctm_icbc += f'      setenv INIT_MEDC_1 notused\n'
         cctm_icbc += f'      setenv INITIAL_RUN N\n'
         cctm_icbc += f'  endif\n'
@@ -715,6 +722,13 @@ class CMAQModel:
         else:
             cctm_icbc += f'  set BCFILE = {self.filenames.get("BCFILE")}\n'
         utils.write_to_template(run_cctm_path, cctm_icbc, id='%ICBC%')
+
+        # Write CCTM ocean file information.
+        # NOTE: the two spaces at the beginning of each of these lines are necessary 
+        # because this is all happening inside a loop in the csh script.
+        cctm_ocean  = f'  #> In-line sea spray emissions configuration\n'
+        cctm_ocean += f'  setenv OCEAN_1 $SZpath/{self.filenames.get("OCEAN_1")} #> horizontal grid-dependent surf zone file\n'
+        utils.write_to_template(run_cctm_path, cctm_ocean, id='%OCEAN%')
 
         # Write CCTM gridded emissions information
         # NOTE: the two spaces at the beginning of each of these lines are necessary 
