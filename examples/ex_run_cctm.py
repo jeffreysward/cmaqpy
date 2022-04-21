@@ -14,7 +14,7 @@ end_datetime = 'August 14, 2016'  # DAY AFTER the last day you want run
 # appl = '2016_12OTC2'
 appl = '2016Base_12OTC2'
 # appl = '2016_4OTC2'
-# appl = '2016Base_4OTC2'
+# appl = '2016Base_4OTC2'   
 
 # Specify if you want to run or just setup cctm
 setup_only = False
@@ -39,17 +39,20 @@ if grid_name == '12OTC2':
     cmaq_sim.run_cctm(n_emis_gr=2, gr_emis_labs=['all', 'rwc'], n_emis_pt=9, 
             pt_emis_labs=['ptnonertac', 'ptertac', 'othpt', 'ptagfire', 'ptfire', 'ptfire_othna', 'pt_oilgas', 'cmv_c3_12', 'cmv_c1c2_12'],
             stkgrps_daily=[False, False, False, True, True, True, False, False, False],
+            ctm_abflux='Y',
             stkcaseg = '12US1_2016fh_16j', stkcasee = '12US1_cmaq_cb6_2016fh_16j', 
             delete_existing_output='TRUE', new_sim='FALSE', tstep='010000', 
-            cctm_hours=24, n_procs=48, gb_mem=50, run_hours=72, setup_only=False)
+            cctm_hours=24, n_procs=32, gb_mem=50, run_hours=72, setup_only=False)
 elif grid_name == '4OTC2':
     # Create a CMAQModel object
     cmaq_sim = CMAQModel(start_datetime, end_datetime, appl, coord_name, grid_name, 
         setup_yaml=f'dirpaths_{appl}.yml', new_mcip=True, new_icon=False, new_bcon=True, verbose=True)
     # Call the "run_cctm" method
+    # Note taht we turn off the ammonia bi-directional flux for in-line deposition (ctm_abflux='N') for the 4km domain
     cmaq_sim.run_cctm(n_emis_gr=3, gr_emis_labs=['all', 'rwc', 'beis'], n_emis_pt=7, 
             pt_emis_labs=['ptnonertac', 'ptertac', 'ptagfire', 'ptfire', 'pt_oilgas', 'cmv_c1c2_4', 'cmv_c3_4'],
             stkgrps_daily=[False, False, True, True, False, False, False],
+            ctm_abflux='N',
             stkcaseg = '12US1_2016fh_16j', stkcasee = '12US1_cmaq_cb6_2016fh_16j', 
             delete_existing_output='TRUE', new_sim='FALSE', tstep='010000', 
             cctm_hours=24, n_procs=48, gb_mem=50, run_hours=72, setup_only=False)

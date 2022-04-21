@@ -21,11 +21,12 @@ To visualize the point source emissions, you must transfer these files to the CM
 ### CCTM
 Finally, edit `examples/ex_run_cctm.py`
 
-1. If not rerunning MCIP, specify the location of your MCIP files using the `LOC_MCIP` variable in `data/dirpaths.yml`  
-2. If not rerunning MCIP, set `new_mcip=False` in your `CMAQModel` instance  
-3. Specify the location of your initial and boundary conditions using the `LOC_IC` and `LOC_BC` variables in `data/dirpaths.yml`
-3. Specify the location of your ptertac in-line emissiions files using the `LOC_ERTAC` variable in `data/dirpaths.yml`   
-3. Change `appl` 
+1. Prepare your `data/dirpaths_{self.appl}.yml` with directory and file paths. 
+2. If not rerunning MCIP, specify the location of your MCIP files using the `LOC_MCIP` variable in `data/dirpaths_{self.appl}.yml`  
+3. If not rerunning MCIP, set `new_mcip=False` in your `CMAQModel` instance  
+4. Specify the location of your initial and boundary conditions using the `LOC_IC` and `LOC_BC` variables in `data/dirpaths_{self.appl}.yml`
+5. Specify the location of your ptertac in-line emissiions files using the `LOC_ERTAC` variable in `data/dirpaths_{self.appl}.yml`   
+6. Change `appl` 
 
 ### Combine
 In order to visualize the data CCTM data properly, you need to postprocess the data using the CMAQ `combine` utility program which is located in `${CMAQ_HOME}/POST/combine`. Unfortunately, I have yet to add this step to the `runcamq` module so you have to manually edit `combine/scripts/run_combine.csh`
@@ -62,7 +63,7 @@ If you need to run ICON, edit the `examples/ex_run_icon.py` script.
 2. Make sure that the start and end dates are correct. 
 3. Change the `coarse_grid_appl`
 
-Note that I'm just using the simulations transferred to us from NYDEC as boundary conditions, so I just simply change the `LOC_IC` variable in `data/dirpaths.yml` rather than actually run ICON. 
+Note that I'm just using the simulations transferred to us from NYDEC as boundary conditions, so I just simply change the `LOC_IC` variable in `data/dirpaths_{self.appl}.yml` rather than actually run ICON. 
 
 ### BCON
 If you need to run BCON, edit the `examples/ex_run_bcon.py` script
@@ -74,7 +75,10 @@ If you need to run BCON, edit the `examples/ex_run_bcon.py` script
 ### CCTM
 Finally, edit `examples/ex_run_cctm.py`
 
-1. If not running MCIP, specify the location of your MCIP files using the `LOC_MCIP` variable in `data/dirpaths.yml` and set `new_mcip=False` in your `CMAQModel` instance.  
-2. If not running BCON, specify the location of you BCON files using the `LOC_BC` variable in `data/dirpaths.yml` and set `new_bcon=False` in your `CMAQModel` instance.
-3. Specify the name of your ptertac in-line emissiions files in the `LOC_ERTAC` variable in `data/dirpaths.yml`.   
-4. Change `appl`
+1. Prepare your `data/dirpaths_{self.appl}.yml` with directory and file paths. 
+2. If not running MCIP, specify the location of your MCIP files using the `LOC_MCIP` variable in `data/dirpaths_{self.appl}.yml` and set `new_mcip=False` in your `CMAQModel` instance.  
+3. If not running BCON, specify the location of you BCON files using the `LOC_BC` variable in `data/dirpaths_{self.appl}.yml` and set `new_bcon=False` in your `CMAQModel` instance.
+4. Specify the name of your ptertac in-line emissiions files in the `LOC_ERTAC` variable in `data/dirpaths_{self.appl}.yml`.   
+5. Change `appl`
+
+*NOTE: you can run multiple instances of CMAQModel at the same time, but some log files will be deleted, so this is not recommended while debugging. 
