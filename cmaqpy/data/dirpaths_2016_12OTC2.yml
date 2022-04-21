@@ -23,6 +23,8 @@ file_paths:
   GRIDDESC: '/share/mzhang/jas983/cmaq_data/CMAQ_v5.3.3/cmaqpy/cmaqpy/data/GRIDDESC2'
   SECTORLIST: '/share/mzhang/jas983/emissions_data/nei_platform2016/v1/2016fh_16j/scripts/sectorlist_2016fh_02aug2019_v0'
 file_names:
+  BCFILE: 'BCON_v53_12OTC2_regrid_from36US3_${YYYYMMDD}'
+  OCEAN_1: '12US1_surf.12otc2.ncf'
   GR_EMIS_001: 'emis_mole_all_${YYYYMMDD}_12US1_withbeis_2016fh_16j.12us2.ptnonertac_apt_fix.12OTC2.ncf'
   GR_EMIS_002: 'emis_mole_rwc_${YYYYMMDD}_12US1_cmaq_cb6_2016fh_16j_12OTC2.ncf'
   STK_EMIS_001: 'inln_mole_ptnonertac_${YYYYMMDD}_12US2_cmaq_cb6_2016fh_16j.ncf'
