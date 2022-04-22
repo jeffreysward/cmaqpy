@@ -10,6 +10,9 @@ class CMAQModel:
     """
     This class provides a framework for running the CMAQ Model.
 
+    NOTE: evetnually need to figure out how to link files for representative days through the following Sunday.
+    Right now, I do this manually by adding 1 to the length of days. 
+
     Parameters
     ----------
     :param start_datetime: string
@@ -498,7 +501,7 @@ class CMAQModel:
         utils.make_dirs(self.CCTM_INPDIR)
 
         # Make a list of the start dates for date-specific inputs
-        start_datetimes_lst = [single_date for single_date in (self.start_datetime + datetime.timedelta(n) for n in range(self.delt.days))]
+        start_datetimes_lst = [single_date for single_date in (self.start_datetime + datetime.timedelta(n) for n in range(self.delt.days + 1))]
 
         # Make lists of representative days
         # These are necessary because some of the point sectors use representative days
@@ -596,7 +599,7 @@ class CMAQModel:
         os.system(cmd)
 
         # Remove broken links from the input dir
-        # os.system(f'find {self.CCTM_INPDIR} -xtype l -delete')    
+        os.system(f'find {self.CCTM_INPDIR} -xtype l -delete')    
     
     def run_cctm(self, n_emis_gr=2, gr_emis_labs=['all', 'rwc'], n_emis_pt=9, 
         pt_emis_labs=['ptnonertac', 'ptertac', 'othpt', 'ptagfire', 'ptfire', 'ptfire_othna', 'pt_oilgas', 'cmv_c3_12', 'cmv_c1c2_12'],
@@ -617,7 +620,7 @@ class CMAQModel:
             raise ValueError(f'n_emis_pt ({n_emis_pt}) should match the length of stkgrps_daily (len={len(stkgrps_daily)})')
         ## SETUP CCTM
         # Copy the template CCTM run script to the scripts directory
-        run_cctm_path = f'{self.CCTM_SCRIPTS}/run_cctm.csh'
+        run_cctm_path = f'{self.CCTM_SCRIPTS}/run_cctm_{self.appl}.csh'
         cmd = self.CMD_CP % (f'{self.DIR_TEMPLATES}/template_run_cctm.csh', run_cctm_path)
         os.system(cmd)
         # Copy the template CCTM submission script to the scripts directory
@@ -704,64 +707,64 @@ class CMAQModel:
         # Write CCTM IC and BC information
         # NOTE: the two spaces at the beginning of each of these lines are necessary 
         # because this is all happening inside a loop in the csh script.
-        cctm_icbc  = f'  #> Initial conditions\n'
-        cctm_icbc += f'  if ($NEW_START == true || $NEW_START == TRUE ) then\n'
-        cctm_icbc += f'      setenv ICON_{self.icon_vrsn}_{self.appl}_{self.icon_type}_{self.start_datetime.strftime("%Y%m%d")}\n'
-        cctm_icbc += f'      setenv INIT_MEDC_1 notused\n'
-        cctm_icbc += f'  else\n'
-        cctm_icbc += f'      set ICpath = $OUTDIR\n'
-        cctm_icbc +=  '      setenv ICFILE CCTM_CGRID_${RUNID}_${YESTERDAY}.nc\n'
-        cctm_icbc +=  '  #   setenv INIT_MEDC_1 $ICpath/CCTM_MEDIA_CONC_${RUNID}_${YESTERDAY}.nc\n'
-        cctm_icbc += f'      setenv INIT_MEDC_1 notused\n'
-        cctm_icbc += f'      setenv INITIAL_RUN N\n'
-        cctm_icbc += f'  endif\n'
-        cctm_icbc += f'  \n'
-        cctm_icbc += f'  #> Boundary conditions\n'
+        cctm_icbc  = f'   #> Initial conditions\n'
+        cctm_icbc += f'   if ($NEW_START == true || $NEW_START == TRUE ) then\n'
+        cctm_icbc += f'       setenv ICON_{self.icon_vrsn}_{self.appl}_{self.icon_type}_{self.start_datetime.strftime("%Y%m%d")}\n'
+        cctm_icbc += f'       setenv INIT_MEDC_1 notused\n'
+        cctm_icbc += f'   else\n'
+        cctm_icbc += f'       set ICpath = $OUTDIR\n'
+        cctm_icbc +=  '       setenv ICFILE CCTM_CGRID_${RUNID}_${YESTERDAY}.nc\n'
+        cctm_icbc +=  '   #   setenv INIT_MEDC_1 $ICpath/CCTM_MEDIA_CONC_${RUNID}_${YESTERDAY}.nc\n'
+        cctm_icbc += f'       setenv INIT_MEDC_1 notused\n'
+        cctm_icbc += f'       setenv INITIAL_RUN N\n'
+        cctm_icbc += f'   endif\n'
+        cctm_icbc += f'   \n'
+        cctm_icbc += f'   #> Boundary conditions\n'
         if self.new_bcon:
-            cctm_icbc += f'  set BCFILE = BCON_{self.bcon_vrsn}_{self.appl}_{self.bcon_type}_$YYYYMMDD\n'
+            cctm_icbc += f'   set BCFILE = BCON_{self.bcon_vrsn}_{self.appl}_{self.bcon_type}_$YYYYMMDD\n'
         else:
-            cctm_icbc += f'  set BCFILE = {self.filenames.get("BCFILE")}\n'
+            cctm_icbc += f'   set BCFILE = {self.filenames.get("BCFILE")}\n'
         utils.write_to_template(run_cctm_path, cctm_icbc, id='%ICBC%')
 
         # Write CCTM ocean file information.
         # NOTE: the two spaces at the beginning of each of these lines are necessary 
         # because this is all happening inside a loop in the csh script.
-        cctm_ocean  = f'  #> In-line sea spray emissions configuration\n'
-        cctm_ocean += f'  setenv OCEAN_1 $SZpath/{self.filenames.get("OCEAN_1")} #> horizontal grid-dependent surf zone file\n'
+        cctm_ocean  = f'   #> In-line sea spray emissions configuration\n'
+        cctm_ocean += f'   setenv OCEAN_1 $SZpath/{self.filenames.get("OCEAN_1")} #> horizontal grid-dependent surf zone file\n'
         utils.write_to_template(run_cctm_path, cctm_ocean, id='%OCEAN%')
 
         # Write CCTM gridded emissions information
         # NOTE: the two spaces at the beginning of each of these lines are necessary 
         # because this is all happening inside a loop in the csh script.
-        cctm_gr  = f'  #> Gridded Emissions Files\n'
-        cctm_gr += f'  setenv N_EMIS_GR {n_emis_gr}                          #> Number of gridded emissions groups\n'
+        cctm_gr  = f'   #> Gridded Emissions Files\n'
+        cctm_gr += f'   setenv N_EMIS_GR {n_emis_gr}                          #> Number of gridded emissions groups\n'
         for ii in range(1, n_emis_gr + 1):
             gr_emis_file = self.filenames.get(f'GR_EMIS_{str(ii).zfill(3)}')
-            cctm_gr += f'  setenv GR_EMIS_{str(ii).zfill(3)} {self.CCTM_GRIDDED}/{gr_emis_file}\n'
-            cctm_gr += f'  # Label each gridded emissions stream\n'
-            cctm_gr += f'  setenv GR_EMIS_LAB_{str(ii).zfill(3)} {gr_emis_labs[ii-1]}\n'
-            cctm_gr += f'  # Do not allow CMAQ to use gridded source files with dates that do not match the model date\n'
-            cctm_gr += f'  setenv GR_EM_SYM_DATE_{str(ii).zfill(3)} F\n'
+            cctm_gr += f'   setenv GR_EMIS_{str(ii).zfill(3)} {self.CCTM_GRIDDED}/{gr_emis_file}\n'
+            cctm_gr += f'   # Label each gridded emissions stream\n'
+            cctm_gr += f'   setenv GR_EMIS_LAB_{str(ii).zfill(3)} {gr_emis_labs[ii-1]}\n'
+            cctm_gr += f'   # Do not allow CMAQ to use gridded source files with dates that do not match the model date\n'
+            cctm_gr += f'   setenv GR_EM_SYM_DATE_{str(ii).zfill(3)} F\n'
         utils.write_to_template(run_cctm_path, cctm_gr, id='%GRIDDED%')
 
         # Write CCTM point source emissions information
         # NOTE: the two spaces at the beginning of each of these lines are necessary 
         # because this is all happening inside a loop in the csh script.
-        cctm_pt  = f'  #> In-line point emissions configuration\n'
-        cctm_pt += f'  setenv N_EMIS_PT {n_emis_pt}                          #> Number of elevated source groups\n'
-        cctm_pt += f'  set STKCASEG = {stkcaseg}                             # Stack Group Version Label\n'
-        cctm_pt += f'  set STKCASEE = {stkcasee}                             # Stack Emission Version Label\n'
+        cctm_pt  = f'   #> In-line point emissions configuration\n'
+        cctm_pt += f'   setenv N_EMIS_PT {n_emis_pt}                          #> Number of elevated source groups\n'
+        cctm_pt += f'   set STKCASEG = {stkcaseg}                             # Stack Group Version Label\n'
+        cctm_pt += f'   set STKCASEE = {stkcasee}                             # Stack Emission Version Label\n'
         for ii in range(1, n_emis_pt + 1):
             stk_emis_file = self.filenames.get(f'STK_EMIS_{str(ii).zfill(3)}')
             stk_grps_file = self.filenames.get(f'STK_GRPS_{str(ii).zfill(3)}')
-            cctm_pt += f'  # Time-Independent Stack Parameters for Inline Point Sources\n'
-            cctm_pt += f'  setenv STK_GRPS_{str(ii).zfill(3)} $IN_PTpath/stack_groups/{stk_grps_file}\n'
-            cctm_pt += f'  # Time-Dependent Emissions file\n'
-            cctm_pt += f'  setenv STK_EMIS_{str(ii).zfill(3)} $IN_PTpath/{stk_emis_file}\n'
-            cctm_pt += f'  # Label Each Emissions Stream\n'
-            cctm_pt += f'  setenv STK_EMIS_LAB_{str(ii).zfill(3)} {pt_emis_labs[ii-1]}\n'
-            cctm_pt += f'  # Allow CMAQ to Use Point Source files with dates that do not match the internal model date\n'
-            cctm_pt += f'  setenv STK_EM_SYM_DATE_{str(ii).zfill(3)} T\n'
+            cctm_pt += f'   # Time-Independent Stack Parameters for Inline Point Sources\n'
+            cctm_pt += f'   setenv STK_GRPS_{str(ii).zfill(3)} $IN_PTpath/stack_groups/{stk_grps_file}\n'
+            cctm_pt += f'   # Time-Dependent Emissions file\n'
+            cctm_pt += f'   setenv STK_EMIS_{str(ii).zfill(3)} $IN_PTpath/{stk_emis_file}\n'
+            cctm_pt += f'   # Label Each Emissions Stream\n'
+            cctm_pt += f'   setenv STK_EMIS_LAB_{str(ii).zfill(3)} {pt_emis_labs[ii-1]}\n'
+            cctm_pt += f'   # Allow CMAQ to Use Point Source files with dates that do not match the internal model date\n'
+            cctm_pt += f'   setenv STK_EM_SYM_DATE_{str(ii).zfill(3)} T\n'
         utils.write_to_template(run_cctm_path, cctm_pt, id='%POINT%')
 
         # Write CCTM submission script
@@ -780,7 +783,7 @@ class CMAQModel:
         cctm_sub += f'#SBATCH --mem={gb_mem}000M            # memory required per node\n'
         cctm_sub += f'#SBATCH --partition=default_cpu # Which queue it should run on.\n'
         cctm_sub += f'\n'
-        cctm_sub += f'{self.CCTM_SCRIPTS}/run_cctm.csh >&! {self.CCTM_SCRIPTS}/cctm_{self.appl}.log\n'
+        cctm_sub += f'{self.CCTM_SCRIPTS}/run_cctm_{self.appl}.csh >&! {self.CCTM_SCRIPTS}/cctm_{self.appl}.log\n'
         utils.write_to_template(submit_cctm_path, cctm_sub, id='%ALL%')
 
         if self.verbose:
@@ -789,7 +792,7 @@ class CMAQModel:
         ## RUN CCTM
         if not setup_only:
             # Remove logs from previous runs
-            os.system(self.CMD_RM % (f'{self.CCTM_SCRIPTS}/CTM_LOG*'))
+            os.system(self.CMD_RM % (f'{self.CCTM_SCRIPTS}/CTM_LOG*{self.appl}*'))
             # Submit CCTM to Slurm
             CMD_CCTM = f'sbatch --requeue {submit_cctm_path}'
             os.system(CMD_CCTM)
