@@ -1,5 +1,6 @@
 This repository holds python code to help facilitate running and processing CMAQ simulations.
 
+Instructions for running two scenarios (a base case and a with renewables scenario) for the DEC's 12OTC2 domain (12 km spatial resolution) and 4OTC2 domain (4 km spatial resolution) are included in this README.
 *NOTE: I'm not sure if this package allows you to run multiple instances of CMAQModel simultaneously. 
 
 ## Run a new simulation on the 12-km domain
@@ -30,11 +31,11 @@ Finally, edit `examples/ex_run_cctm.py`
 5. Change `appl` 
 
 ### Combine
-In order to visualize the data CCTM data properly, you need to postprocess the data using the CMAQ `combine` utility program which is located in `${CMAQ_HOME}/POST/combine`. Unfortunately, I have yet to add this step to the `runcamq` module so you have to manually edit `combine/scripts/run_combine.csh`
-1. Change `APPL`  
-2. Change `START_DATE`  
-3. Change `END_DATE`  
-4. Run the script using `sbatch run_combine.csh`, which should take several minutes per day of simulaiton time with the default calcualtions. 
+In order to visualize the data CCTM data properly, you need to postprocess the data using the CMAQ `combine` utility program, which you can run by editing `examples/ex_run_scombine.py`.  
+1. Change `start_datetime`.   
+2. Change `end_datetime`.   
+3. Change `appl`.   
+4. Run `examples/ex_run_combine.py`. No need for a tmux window, and this should take several minutes per day of simulaiton time with the default calcualtions. 
 
 ## Run a new simulation on the 4-km domian
 ### SMOKE
@@ -90,4 +91,4 @@ In order to visualize the data CCTM data properly, you need to postprocess the d
 1. Change `start_datetime`.   
 2. Change `end_datetime`.   
 3. Change `appl`.   
-4. Run `examples/ex_run_scombine.py`. No need for a tmux window.
+4. Run `examples/ex_run_combine.py`. No need for a tmux window, and this should take several minutes per day of simulaiton time with the default calcualtions. 
