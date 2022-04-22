@@ -19,7 +19,8 @@ elif appl == '2016_4OTC2':
     grid_name = '4OTC2'
 
 # Create a CMAQModel object
-cmaq_sim = CMAQModel(start_datetime, end_datetime, appl, coord_name, grid_name, verbose=True)
+cmaq_sim = CMAQModel(start_datetime, end_datetime, appl, coord_name, grid_name, 
+    setup_yaml=f'dirpaths_{appl}.yml', verbose=True)
 # Specify the meteorolocial files
 if appl == '2016_12OTC2':
     metfile_list = ['wrfout_d01_2016-08-05_00:00:00']

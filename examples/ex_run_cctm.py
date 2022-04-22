@@ -42,7 +42,7 @@ if grid_name == '12OTC2':
             ctm_abflux='Y',
             stkcaseg = '12US1_2016fh_16j', stkcasee = '12US1_cmaq_cb6_2016fh_16j', 
             delete_existing_output='TRUE', new_sim='FALSE', tstep='010000', 
-            cctm_hours=24, n_procs=32, gb_mem=50, run_hours=72, setup_only=False)
+            cctm_hours=24, n_procs=48, gb_mem=50, run_hours=72, setup_only=False)
 elif grid_name == '4OTC2':
     # Create a CMAQModel object
     cmaq_sim = CMAQModel(start_datetime, end_datetime, appl, coord_name, grid_name, 
