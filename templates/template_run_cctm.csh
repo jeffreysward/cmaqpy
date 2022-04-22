@@ -182,443 +182,443 @@ set NDAYS = 0
 
 while ($TODAYJ <= $STOP_DAY )  #>Compare dates in terms of YYYYJJJ
   
-  set NDAYS = `echo "${NDAYS} + 1" | bc -l`
+   set NDAYS = `echo "${NDAYS} + 1" | bc -l`
 
-  #> Retrieve Calendar day Information
-  set YYYYMMDD = `date -ud "${TODAYG}" +%Y%m%d` #> Convert YYYY-MM-DD to YYYYMMDD
-  set YYYYMM = `date -ud "${TODAYG}" +%Y%m`     #> Convert YYYY-MM-DD to YYYYMM
-  set YYMMDD = `date -ud "${TODAYG}" +%y%m%d`   #> Convert YYYY-MM-DD to YYMMDD
-  set DD = `date -ud "${TODAYG}" +%d`           #> Get only the day
-  set YYYYJJJ = $TODAYJ
+   #> Retrieve Calendar day Information
+   set YYYYMMDD = `date -ud "${TODAYG}" +%Y%m%d` #> Convert YYYY-MM-DD to YYYYMMDD
+   set YYYYMM = `date -ud "${TODAYG}" +%Y%m`     #> Convert YYYY-MM-DD to YYYYMM
+   set YYMMDD = `date -ud "${TODAYG}" +%y%m%d`   #> Convert YYYY-MM-DD to YYMMDD
+   set DD = `date -ud "${TODAYG}" +%d`           #> Get only the day
+   set YYYYJJJ = $TODAYJ
 
-  #> Retrieve Representative Day Information
-  if ( $DD == '08' ) then
-     @ gline = 8 + 1
-  else if ( $DD == '09' ) then
-     @ gline = 9 + 1
-  else
-     @ gline = $DD + 1
-  endif
+   #> Retrieve Representative Day Information
+   if ( $DD == '08' ) then
+      @ gline = 8 + 1
+   else if ( $DD == '09' ) then
+      @ gline = 9 + 1
+   else
+      @ gline = $DD + 1
+   endif
 
-  # Emission Rates for Inline Point Sources
-  #--> Create a link for representative date emissions sectors: othpt, ptnonipm, pt_oilgas 
-  #--> NOTE: this is the how NEI processes emissions, so you need the sectorlist file from one of the NEI platforms
-  set sectorlist = $IN_PTpath/../sectorlist_2016fh_02aug2019_v0
-  set reffile = $IN_PTpath/../smk_merge_dates_${YYYYMM}.txt
+   # Emission Rates for Inline Point Sources
+   #--> Create a link for representative date emissions sectors: othpt, ptnonipm, pt_oilgas 
+   #--> NOTE: this is the how NEI processes emissions, so you need the sectorlist file from one of the NEI platforms
+   set sectorlist = $IN_PTpath/../sectorlist_2016fh_02aug2019_v0
+   set reffile = $IN_PTpath/../smk_merge_dates_${YYYYMM}.txt
 
-  set intable = `head -$gline $reffile | tail -1`
-  set Date     = `echo $intable[1] | cut -d, -f1`
-  set aveday_N = `echo $intable[2] | cut -d, -f1`
-  set aveday_Y = `echo $intable[3] | cut -d, -f1`
-  set mwdss_N  = `echo $intable[4] | cut -d, -f1`
-  set mwdss_Y  = `echo $intable[5] | cut -d, -f1`
-  set week_N   = `echo $intable[6] | cut -d, -f1`
-  set week_Y   = `echo $intable[7] | cut -d, -f1`
-  set all      = `echo $intable[8] | cut -d, -f1`
-#   echo $Date $aveday_N $aveday_Y $mwdss_N $mwdss_Y 
-#   echo $week_N $week_Y $all
+   set intable = `head -$gline $reffile | tail -1`
+   set Date     = `echo $intable[1] | cut -d, -f1`
+   set aveday_N = `echo $intable[2] | cut -d, -f1`
+   set aveday_Y = `echo $intable[3] | cut -d, -f1`
+   set mwdss_N  = `echo $intable[4] | cut -d, -f1`
+   set mwdss_Y  = `echo $intable[5] | cut -d, -f1`
+   set week_N   = `echo $intable[6] | cut -d, -f1`
+   set week_Y   = `echo $intable[7] | cut -d, -f1`
+   set all      = `echo $intable[8] | cut -d, -f1`
+   #   echo $Date $aveday_N $aveday_Y $mwdss_N $mwdss_Y 
+   #   echo $week_N $week_Y $all
 
-  #> Calculate Yesterday's Date
-  set YESTERDAY = `date -ud "${TODAYG}-1days" +%Y%m%d` #> Convert YYYY-MM-DD to YYYYJJJ
+   #> Calculate Yesterday's Date
+   set YESTERDAY = `date -ud "${TODAYG}-1days" +%Y%m%d` #> Convert YYYY-MM-DD to YYYYJJJ
 
-# =====================================================================
-#> Set Output String and Propagate Model Configuration Documentation
-# =====================================================================
-  echo ""
-  echo "Set up input and output files for Day ${TODAYG}."
+   # =====================================================================
+   #> Set Output String and Propagate Model Configuration Documentation
+   # =====================================================================
+   echo ""
+   echo "Set up input and output files for Day ${TODAYG}."
 
-  #> set output file name extensions
-  setenv CTM_APPL ${RUNID}_${YYYYMMDD} 
-  
-  #> Copy Model Configuration To Output Folder
-  if ( ! -d "$OUTDIR" ) mkdir -p $OUTDIR
-  cp $BLD/CCTM_${VRSN}.cfg $OUTDIR/CCTM_${CTM_APPL}.cfg
+   #> set output file name extensions
+   setenv CTM_APPL ${RUNID}_${YYYYMMDD} 
+   
+   #> Copy Model Configuration To Output Folder
+   if ( ! -d "$OUTDIR" ) mkdir -p $OUTDIR
+   cp $BLD/CCTM_${VRSN}.cfg $OUTDIR/CCTM_${CTM_APPL}.cfg
 
-# =====================================================================
-#> Input Files (Some are Day-Dependent)
-# =====================================================================
+   # =====================================================================
+   #> Input Files (Some are Day-Dependent)
+   # =====================================================================
 
 %ICBC%
 
-  #> Off-line photolysis rates 
-  #set JVALfile  = JTABLE_${YYYYJJJ}
+   #> Off-line photolysis rates 
+   #set JVALfile  = JTABLE_${YYYYJJJ}
 
-  #> Ozone column data
-  set OMIfile   = OMI_1979_to_2019.dat
+   #> Ozone column data
+   set OMIfile   = OMI_1979_to_2019.dat
 
-  #> Optics file
-  set OPTfile = PHOT_OPTICS.dat
+   #> Optics file
+   set OPTfile = PHOT_OPTICS.dat
 
-  #> MCIP meteorology files 
-  setenv GRID_BDY_2D $METpath/GRIDBDY2D_${YYMMDD}.nc  # GRID files are static, not day-specific
-  setenv GRID_CRO_2D $METpath/GRIDCRO2D_${YYMMDD}.nc
-  setenv GRID_CRO_3D $METpath/GRIDCRO3D_${YYMMDD}.nc
-  setenv GRID_DOT_2D $METpath/GRIDDOT2D_${YYMMDD}.nc
-  setenv MET_CRO_2D $METpath/METCRO2D_${YYMMDD}.nc
-  setenv MET_CRO_3D $METpath/METCRO3D_${YYMMDD}.nc
-  setenv MET_DOT_3D $METpath/METDOT3D_${YYMMDD}.nc
-  setenv MET_BDY_3D $METpath/METBDY3D_${YYMMDD}.nc
-  setenv LUFRAC_CRO $METpath/LUFRAC_CRO_${YYMMDD}.nc
+   #> MCIP meteorology files 
+   setenv GRID_BDY_2D $METpath/GRIDBDY2D_${YYMMDD}.nc  # GRID files are static, not day-specific
+   setenv GRID_CRO_2D $METpath/GRIDCRO2D_${YYMMDD}.nc
+   setenv GRID_CRO_3D $METpath/GRIDCRO3D_${YYMMDD}.nc
+   setenv GRID_DOT_2D $METpath/GRIDDOT2D_${YYMMDD}.nc
+   setenv MET_CRO_2D $METpath/METCRO2D_${YYMMDD}.nc
+   setenv MET_CRO_3D $METpath/METCRO3D_${YYMMDD}.nc
+   setenv MET_DOT_3D $METpath/METDOT3D_${YYMMDD}.nc
+   setenv MET_BDY_3D $METpath/METBDY3D_${YYMMDD}.nc
+   setenv LUFRAC_CRO $METpath/LUFRAC_CRO_${YYMMDD}.nc
 
-  #> Emissions Control File
-  #>
-  #> IMPORTANT NOTE
-  #>
-  #> The emissions control file defined below is an integral part of controlling the behavior of the model simulation.
-  #> Among other things, it controls the mapping of species in the emission files to chemical species in the model and
-  #> several aspects related to the simulation of organic aerosols.
-  #> Please carefully review the emissions control file to ensure that it is configured to be consistent with the assumptions
-  #> made when creating the emission files defined below and the desired representation of organic aerosols.
-  #> For further information, please see:
-  #> + AERO7 Release Notes section on 'Required emission updates':
-  #>   https://github.com/USEPA/CMAQ/blob/main/DOCS/Release_Notes/CMAQv5.3_aero7_overview.md
-  #> + CMAQ User's Guide section 6.9.3 on 'Emission Compatability': 
-  #>   https://github.com/USEPA/CMAQ/blob/main/DOCS/Users_Guide/CMAQ_UG_ch06_model_configuration_options.md#6.9.3_Emission_Compatability
-  #> + Emission Control (DESID) Documentation in the CMAQ User's Guide: 
-  #>   https://github.com/USEPA/CMAQ/blob/main/DOCS/Users_Guide/Appendix/CMAQ_UG_appendixB_emissions_control.md 
-  #>
-  setenv EMISSCTRL_NML ${BLD}/EmissCtrl_${MECH}.nml
+   #> Emissions Control File
+   #>
+   #> IMPORTANT NOTE
+   #>
+   #> The emissions control file defined below is an integral part of controlling the behavior of the model simulation.
+   #> Among other things, it controls the mapping of species in the emission files to chemical species in the model and
+   #> several aspects related to the simulation of organic aerosols.
+   #> Please carefully review the emissions control file to ensure that it is configured to be consistent with the assumptions
+   #> made when creating the emission files defined below and the desired representation of organic aerosols.
+   #> For further information, please see:
+   #> + AERO7 Release Notes section on 'Required emission updates':
+   #>   https://github.com/USEPA/CMAQ/blob/main/DOCS/Release_Notes/CMAQv5.3_aero7_overview.md
+   #> + CMAQ User's Guide section 6.9.3 on 'Emission Compatability': 
+   #>   https://github.com/USEPA/CMAQ/blob/main/DOCS/Users_Guide/CMAQ_UG_ch06_model_configuration_options.md#6.9.3_Emission_Compatability
+   #> + Emission Control (DESID) Documentation in the CMAQ User's Guide: 
+   #>   https://github.com/USEPA/CMAQ/blob/main/DOCS/Users_Guide/Appendix/CMAQ_UG_appendixB_emissions_control.md 
+   #>
+   setenv EMISSCTRL_NML ${BLD}/EmissCtrl_${MECH}.nml
 
-  #> Spatial Masks For Emissions Scaling
-  setenv CMAQ_MASKS $SZpath/12US1_surf.12otc2.ncf #> horizontal grid-dependent surf zone file
+   #> Spatial Masks For Emissions Scaling
+   setenv CMAQ_MASKS $SZpath/12US1_surf.12otc2.ncf #> horizontal grid-dependent surf zone file
 
 %GRIDDED%
 
 %POINT%
 
-  #> Lightning NOx configuration
-  if ( $CTM_LTNG_NO == 'Y' ) then
-     setenv LTNGNO "InLine"    #> set LTNGNO to "Inline" to activate in-line calculation
+   #> Lightning NOx configuration
+   if ( $CTM_LTNG_NO == 'Y' ) then
+      setenv LTNGNO "InLine"    #> set LTNGNO to "Inline" to activate in-line calculation
 
-  #> In-line lightning NOx options
-     setenv USE_NLDN  Y        #> use hourly NLDN strike file [ default: Y ]
-     if ( $USE_NLDN == Y ) then
-        setenv NLDN_STRIKES ${IN_LTpath}/NLDN.12US1.${YYYYMMDD}_bench.nc
-     endif
-     setenv LTNGPARMS_FILE ${IN_LTpath}/LTNG_AllParms_12US1_bench.nc #> lightning parameter file
-  endif
+   #> In-line lightning NOx options
+      setenv USE_NLDN  Y        #> use hourly NLDN strike file [ default: Y ]
+      if ( $USE_NLDN == Y ) then
+         setenv NLDN_STRIKES ${IN_LTpath}/NLDN.12US1.${YYYYMMDD}_bench.nc
+      endif
+      setenv LTNGPARMS_FILE ${IN_LTpath}/LTNG_AllParms_12US1_bench.nc #> lightning parameter file
+   endif
 
-  #> In-line biogenic emissions configuration
-  if ( $CTM_BIOGEMIS == 'Y' ) then   
-     set IN_BEISpath = ${INPDIR}/land
-     setenv GSPRO      $BLD/gspro_biogenics.txt
-     setenv B3GRD      $IN_BEISpath/b3grd_bench.nc
-     setenv BIOSW_YN   Y     #> use frost date switch [ default: Y ]
-     setenv BIOSEASON  $IN_BEISpath/bioseason.cmaq.2016_12US1_full_bench.ncf 
-                             #> ignore season switch file if BIOSW_YN = N
-     setenv SUMMER_YN  Y     #> Use summer normalized emissions? [ default: Y ]
-     setenv PX_VERSION Y     #> MCIP is PX version? [ default: N ]
-     setenv SOILINP    $OUTDIR/CCTM_SOILOUT_${RUNID}_${YESTERDAY}.nc
-                             #> Biogenic NO soil input file; ignore if NEW_START = TRUE
-  endif
+   #> In-line biogenic emissions configuration
+   if ( $CTM_BIOGEMIS == 'Y' ) then   
+      set IN_BEISpath = ${INPDIR}/land
+      setenv GSPRO      $BLD/gspro_biogenics.txt
+      setenv B3GRD      $IN_BEISpath/b3grd_bench.nc
+      setenv BIOSW_YN   Y     #> use frost date switch [ default: Y ]
+      setenv BIOSEASON  $IN_BEISpath/bioseason.cmaq.2016_12US1_full_bench.ncf 
+                              #> ignore season switch file if BIOSW_YN = N
+      setenv SUMMER_YN  Y     #> Use summer normalized emissions? [ default: Y ]
+      setenv PX_VERSION Y     #> MCIP is PX version? [ default: N ]
+      setenv SOILINP    $OUTDIR/CCTM_SOILOUT_${RUNID}_${YESTERDAY}.nc
+                              #> Biogenic NO soil input file; ignore if NEW_START = TRUE
+   endif
 
-  #> Windblown dust emissions configuration
-  if ( $CTM_WB_DUST == 'Y' ) then
-     # Input variables for BELD3 Landuse option
-     setenv DUST_LU_1 $LUpath/beld3_12US1_459X299_output_a_bench.nc
-     setenv DUST_LU_2 $LUpath/beld4_12US1_459X299_output_tot_bench.nc
-  endif
+   #> Windblown dust emissions configuration
+   if ( $CTM_WB_DUST == 'Y' ) then
+      # Input variables for BELD3 Landuse option
+      setenv DUST_LU_1 $LUpath/beld3_12US1_459X299_output_a_bench.nc
+      setenv DUST_LU_2 $LUpath/beld4_12US1_459X299_output_tot_bench.nc
+   endif
 
 %OCEAN%
 
-  #> Bidirectional ammonia configuration
-  if ( $CTM_ABFLUX == 'Y' ) then
-     setenv E2C_SOIL ${LUpath}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_soil.12otc2.ncf
-     setenv E2C_CHEM ${LUpath}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_time${YYYYMMDD}.12otc2.ncf
-     setenv E2C_CHEM_YEST ${LUpath}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_time${YESTERDAY}.12otc2.ncf
-     setenv E2C_LU ${LUpath}/beld41_feb2017_waterfix_envcan_12US2.12OTC2.ncf
-  endif
+   #> Bidirectional ammonia configuration
+   if ( $CTM_ABFLUX == 'Y' ) then
+      setenv E2C_SOIL ${LUpath}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_soil.12otc2.ncf
+      setenv E2C_CHEM ${LUpath}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_time${YYYYMMDD}.12otc2.ncf
+      setenv E2C_CHEM_YEST ${LUpath}/toCMAQ_festc1.4_epic/us1_2016_cmaq12km_time${YESTERDAY}.12otc2.ncf
+      setenv E2C_LU ${LUpath}/beld41_feb2017_waterfix_envcan_12US2.12OTC2.ncf
+   endif
 
-#> Inline Process Analysis 
-  setenv CTM_PROCAN N        #> use process analysis [ default: N]
-  if ( $?CTM_PROCAN ) then   # $CTM_PROCAN is defined
-     if ( $CTM_PROCAN == 'Y' || $CTM_PROCAN == 'T' ) then
-#> process analysis global column, row and layer ranges
-#       setenv PA_BCOL_ECOL "10 90"  # default: all columns
-#       setenv PA_BROW_EROW "10 80"  # default: all rows
-#       setenv PA_BLEV_ELEV "1  4"   # default: all levels
-        setenv PACM_INFILE ${NMLpath}/pa_${MECH}.ctl
-        setenv PACM_REPORT $OUTDIR/"PA_REPORT".${YYYYMMDD}
-     endif
-  endif
+   #> Inline Process Analysis 
+   setenv CTM_PROCAN N        #> use process analysis [ default: N]
+   if ( $?CTM_PROCAN ) then   # $CTM_PROCAN is defined
+      if ( $CTM_PROCAN == 'Y' || $CTM_PROCAN == 'T' ) then
+   #> process analysis global column, row and layer ranges
+   #      setenv PA_BCOL_ECOL "10 90"  # default: all columns
+   #      setenv PA_BROW_EROW "10 80"  # default: all rows
+   #      setenv PA_BLEV_ELEV "1  4"   # default: all levels
+         setenv PACM_INFILE ${NMLpath}/pa_${MECH}.ctl
+         setenv PACM_REPORT $OUTDIR/"PA_REPORT".${YYYYMMDD}
+      endif
+   endif
 
-#> Integrated Source Apportionment Method (ISAM) Options
- setenv CTM_ISAM N
- if ( $?CTM_ISAM ) then
-    if ( $CTM_ISAM == 'Y' || $CTM_ISAM == 'T' ) then
-       setenv SA_IOLIST ${WORKDIR}/isam_control.txt
-       setenv ISAM_BLEV_ELEV " 1 1"
-       setenv AISAM_BLEV_ELEV " 1 1"
+   #> Integrated Source Apportionment Method (ISAM) Options
+   setenv CTM_ISAM N
+   if ( $?CTM_ISAM ) then
+      if ( $CTM_ISAM == 'Y' || $CTM_ISAM == 'T' ) then
+         setenv SA_IOLIST ${WORKDIR}/isam_control.txt
+         setenv ISAM_BLEV_ELEV " 1 1"
+         setenv AISAM_BLEV_ELEV " 1 1"
 
-       #> Set Up ISAM Initial Condition Flags
-       if ($NEW_START == true || $NEW_START == TRUE ) then
-          setenv ISAM_NEW_START Y
-          setenv ISAM_PREVDAY
-       else
-          setenv ISAM_NEW_START N
-          setenv ISAM_PREVDAY "$OUTDIR/CCTM_SA_CGRID_${RUNID}_${YESTERDAY}.nc"
-       endif
+         #> Set Up ISAM Initial Condition Flags
+         if ($NEW_START == true || $NEW_START == TRUE ) then
+            setenv ISAM_NEW_START Y
+            setenv ISAM_PREVDAY
+         else
+            setenv ISAM_NEW_START N
+            setenv ISAM_PREVDAY "$OUTDIR/CCTM_SA_CGRID_${RUNID}_${YESTERDAY}.nc"
+         endif
 
-       #> Set Up ISAM Output Filenames
-       setenv SA_ACONC_1      "$OUTDIR/CCTM_SA_ACONC_${CTM_APPL}.nc -v"
-       setenv SA_CONC_1       "$OUTDIR/CCTM_SA_CONC_${CTM_APPL}.nc -v"
-       setenv SA_DD_1         "$OUTDIR/CCTM_SA_DRYDEP_${CTM_APPL}.nc -v"
-       setenv SA_WD_1         "$OUTDIR/CCTM_SA_WETDEP_${CTM_APPL}.nc -v"
-       setenv SA_CGRID_1      "$OUTDIR/CCTM_SA_CGRID_${CTM_APPL}.nc -v"
+         #> Set Up ISAM Output Filenames
+         setenv SA_ACONC_1      "$OUTDIR/CCTM_SA_ACONC_${CTM_APPL}.nc -v"
+         setenv SA_CONC_1       "$OUTDIR/CCTM_SA_CONC_${CTM_APPL}.nc -v"
+         setenv SA_DD_1         "$OUTDIR/CCTM_SA_DRYDEP_${CTM_APPL}.nc -v"
+         setenv SA_WD_1         "$OUTDIR/CCTM_SA_WETDEP_${CTM_APPL}.nc -v"
+         setenv SA_CGRID_1      "$OUTDIR/CCTM_SA_CGRID_${CTM_APPL}.nc -v"
 
-       #> Set optional ISAM regions files
-      #  setenv ISAM_REGIONS $INPDIR/GRIDMASK_STATES_12SE1.nc
-
-
-    endif
- endif
+         #> Set optional ISAM regions files
+         #  setenv ISAM_REGIONS $INPDIR/GRIDMASK_STATES_12SE1.nc
 
 
-#> Sulfur Tracking Model (STM)
- setenv STM_SO4TRACK N        #> sulfur tracking [ default: N ]
- if ( $?STM_SO4TRACK ) then
-    if ( $STM_SO4TRACK == 'Y' || $STM_SO4TRACK == 'T' ) then
+      endif
+   endif
 
-      #> option to normalize sulfate tracers [ default: Y ]
-      setenv STM_ADJSO4 Y
 
-    endif
- endif
+   #> Sulfur Tracking Model (STM)
+   setenv STM_SO4TRACK N        #> sulfur tracking [ default: N ]
+   if ( $?STM_SO4TRACK ) then
+      if ( $STM_SO4TRACK == 'Y' || $STM_SO4TRACK == 'T' ) then
 
-#> CMAQ-DDM-3D
- setenv CTM_DDM3D N
- set NPMAX    = 1
- setenv SEN_INPUT ${WORKDIR}/sensinput.dat
+         #> option to normalize sulfate tracers [ default: Y ]
+         setenv STM_ADJSO4 Y
 
- setenv DDM3D_HIGH N     # allow higher-order sensitivity parameters [ T | Y | F | N ] (default is N/F)
+      endif
+   endif
 
- if ($NEW_START == true || $NEW_START == TRUE ) then
-    setenv DDM3D_RST N   # begins from sensitivities from a restart file [ T | Y | F | N ] (default is Y/T)
-    set S_ICpath =
-    set S_ICfile =
- else
-    setenv DDM3D_RST Y
-    set S_ICpath = $OUTDIR
-    set S_ICfile = CCTM_SENGRID_${RUNID}_${YESTERDAY}.nc
- endif
+   #> CMAQ-DDM-3D
+   setenv CTM_DDM3D N
+   set NPMAX    = 1
+   setenv SEN_INPUT ${WORKDIR}/sensinput.dat
 
- setenv DDM3D_BCS F      # use sensitivity bc file for nested runs [ T | Y | F | N ] (default is N/F)                                            
- set S_BCpath =
- set S_BCfile =
+   setenv DDM3D_HIGH N     # allow higher-order sensitivity parameters [ T | Y | F | N ] (default is N/F)
 
- setenv CTM_NPMAX       $NPMAX
- setenv CTM_SENS_1      "$OUTDIR/CCTM_SENGRID_${CTM_APPL}.nc -v"
- setenv A_SENS_1        "$OUTDIR/CCTM_ASENS_${CTM_APPL}.nc -v"
- setenv CTM_SWETDEP_1   "$OUTDIR/CCTM_SENWDEP_${CTM_APPL}.nc -v"
- setenv CTM_SDRYDEP_1   "$OUTDIR/CCTM_SENDDEP_${CTM_APPL}.nc -v"
- setenv CTM_NPMAX       $NPMAX
-    if ( $?CTM_DDM3D ) then
-       if ( $CTM_DDM3D == 'Y' || $CTM_DDM3D == 'T' ) then 
- setenv INIT_SENS_1     $S_ICpath/$S_ICfile
- setenv BNDY_SENS_1     $S_BCpath/$S_BCfile
-       endif
-    endif
+   if ($NEW_START == true || $NEW_START == TRUE ) then
+      setenv DDM3D_RST N   # begins from sensitivities from a restart file [ T | Y | F | N ] (default is Y/T)
+      set S_ICpath =
+      set S_ICfile =
+   else
+      setenv DDM3D_RST Y
+      set S_ICpath = $OUTDIR
+      set S_ICfile = CCTM_SENGRID_${RUNID}_${YESTERDAY}.nc
+   endif
+
+   setenv DDM3D_BCS F      # use sensitivity bc file for nested runs [ T | Y | F | N ] (default is N/F)                                            
+   set S_BCpath =
+   set S_BCfile =
+
+   setenv CTM_NPMAX       $NPMAX
+   setenv CTM_SENS_1      "$OUTDIR/CCTM_SENGRID_${CTM_APPL}.nc -v"
+   setenv A_SENS_1        "$OUTDIR/CCTM_ASENS_${CTM_APPL}.nc -v"
+   setenv CTM_SWETDEP_1   "$OUTDIR/CCTM_SENWDEP_${CTM_APPL}.nc -v"
+   setenv CTM_SDRYDEP_1   "$OUTDIR/CCTM_SENDDEP_${CTM_APPL}.nc -v"
+   setenv CTM_NPMAX       $NPMAX
+      if ( $?CTM_DDM3D ) then
+         if ( $CTM_DDM3D == 'Y' || $CTM_DDM3D == 'T' ) then 
+   setenv INIT_SENS_1     $S_ICpath/$S_ICfile
+   setenv BNDY_SENS_1     $S_BCpath/$S_BCfile
+         endif
+      endif
  
-# =====================================================================
-#> Output Files
-# =====================================================================
+   # =====================================================================
+   #> Output Files
+   # =====================================================================
 
-  #> set output file names
-  setenv S_CGRID         "$OUTDIR/CCTM_CGRID_${CTM_APPL}.nc"         #> 3D Inst. Concentrations
-  setenv CTM_CONC_1      "$OUTDIR/CCTM_CONC_${CTM_APPL}.nc -v"       #> On-Hour Concentrations
-  setenv A_CONC_1        "$OUTDIR/CCTM_ACONC_${CTM_APPL}.nc -v"      #> Hourly Avg. Concentrations
-  setenv MEDIA_CONC      "$OUTDIR/CCTM_MEDIA_CONC_${CTM_APPL}.nc -v" #> NH3 Conc. in Media
-  setenv CTM_DRY_DEP_1   "$OUTDIR/CCTM_DRYDEP_${CTM_APPL}.nc -v"     #> Hourly Dry Deposition
-  setenv CTM_DEPV_DIAG   "$OUTDIR/CCTM_DEPV_${CTM_APPL}.nc -v"       #> Dry Deposition Velocities
-  setenv B3GTS_S         "$OUTDIR/CCTM_B3GTS_S_${CTM_APPL}.nc -v"    #> Biogenic Emissions
-  setenv SOILOUT         "$OUTDIR/CCTM_SOILOUT_${CTM_APPL}.nc"       #> Soil Emissions
-  setenv CTM_WET_DEP_1   "$OUTDIR/CCTM_WETDEP1_${CTM_APPL}.nc -v"    #> Wet Dep From All Clouds
-  setenv CTM_WET_DEP_2   "$OUTDIR/CCTM_WETDEP2_${CTM_APPL}.nc -v"    #> Wet Dep From SubGrid Clouds
-  setenv CTM_PMDIAG_1    "$OUTDIR/CCTM_PMDIAG_${CTM_APPL}.nc -v"     #> On-Hour Particle Diagnostics
-  setenv CTM_APMDIAG_1   "$OUTDIR/CCTM_APMDIAG_${CTM_APPL}.nc -v"    #> Hourly Avg. Particle Diagnostics
-  setenv CTM_RJ_1        "$OUTDIR/CCTM_PHOTDIAG1_${CTM_APPL}.nc -v"  #> 2D Surface Summary from Inline Photolysis
-  setenv CTM_RJ_2        "$OUTDIR/CCTM_PHOTDIAG2_${CTM_APPL}.nc -v"  #> 3D Photolysis Rates 
-  setenv CTM_RJ_3        "$OUTDIR/CCTM_PHOTDIAG3_${CTM_APPL}.nc -v"  #> 3D Optical and Radiative Results from Photolysis
-  setenv CTM_SSEMIS_1    "$OUTDIR/CCTM_SSEMIS_${CTM_APPL}.nc -v"     #> Sea Spray Emissions
-  setenv CTM_DUST_EMIS_1 "$OUTDIR/CCTM_DUSTEMIS_${CTM_APPL}.nc -v"   #> Dust Emissions
-  setenv CTM_IPR_1       "$OUTDIR/CCTM_PA_1_${CTM_APPL}.nc -v"       #> Process Analysis
-  setenv CTM_IPR_2       "$OUTDIR/CCTM_PA_2_${CTM_APPL}.nc -v"       #> Process Analysis
-  setenv CTM_IPR_3       "$OUTDIR/CCTM_PA_3_${CTM_APPL}.nc -v"       #> Process Analysis
-  setenv CTM_IRR_1       "$OUTDIR/CCTM_IRR_1_${CTM_APPL}.nc -v"      #> Chem Process Analysis
-  setenv CTM_IRR_2       "$OUTDIR/CCTM_IRR_2_${CTM_APPL}.nc -v"      #> Chem Process Analysis
-  setenv CTM_IRR_3       "$OUTDIR/CCTM_IRR_3_${CTM_APPL}.nc -v"      #> Chem Process Analysis
-  setenv CTM_DRY_DEP_MOS "$OUTDIR/CCTM_DDMOS_${CTM_APPL}.nc -v"      #> Dry Dep
-  setenv CTM_DRY_DEP_FST "$OUTDIR/CCTM_DDFST_${CTM_APPL}.nc -v"      #> Dry Dep
-  setenv CTM_DEPV_MOS    "$OUTDIR/CCTM_DEPVMOS_${CTM_APPL}.nc -v"    #> Dry Dep Velocity
-  setenv CTM_DEPV_FST    "$OUTDIR/CCTM_DEPVFST_${CTM_APPL}.nc -v"    #> Dry Dep Velocity
-  setenv CTM_VDIFF_DIAG  "$OUTDIR/CCTM_VDIFF_DIAG_${CTM_APPL}.nc -v" #> Vertical Dispersion Diagnostic
-  setenv CTM_VSED_DIAG   "$OUTDIR/CCTM_VSED_DIAG_${CTM_APPL}.nc -v"  #> Particle Grav. Settling Velocity
-  setenv CTM_LTNGDIAG_1  "$OUTDIR/CCTM_LTNGHRLY_${CTM_APPL}.nc -v"   #> Hourly Avg Lightning NO
-  setenv CTM_LTNGDIAG_2  "$OUTDIR/CCTM_LTNGCOL_${CTM_APPL}.nc -v"    #> Column Total Lightning NO
-  setenv CTM_VEXT_1      "$OUTDIR/CCTM_VEXT_${CTM_APPL}.nc -v"       #> On-Hour 3D Concs at select sites
+   #> set output file names
+   setenv S_CGRID         "$OUTDIR/CCTM_CGRID_${CTM_APPL}.nc"         #> 3D Inst. Concentrations
+   setenv CTM_CONC_1      "$OUTDIR/CCTM_CONC_${CTM_APPL}.nc -v"       #> On-Hour Concentrations
+   setenv A_CONC_1        "$OUTDIR/CCTM_ACONC_${CTM_APPL}.nc -v"      #> Hourly Avg. Concentrations
+   setenv MEDIA_CONC      "$OUTDIR/CCTM_MEDIA_CONC_${CTM_APPL}.nc -v" #> NH3 Conc. in Media
+   setenv CTM_DRY_DEP_1   "$OUTDIR/CCTM_DRYDEP_${CTM_APPL}.nc -v"     #> Hourly Dry Deposition
+   setenv CTM_DEPV_DIAG   "$OUTDIR/CCTM_DEPV_${CTM_APPL}.nc -v"       #> Dry Deposition Velocities
+   setenv B3GTS_S         "$OUTDIR/CCTM_B3GTS_S_${CTM_APPL}.nc -v"    #> Biogenic Emissions
+   setenv SOILOUT         "$OUTDIR/CCTM_SOILOUT_${CTM_APPL}.nc"       #> Soil Emissions
+   setenv CTM_WET_DEP_1   "$OUTDIR/CCTM_WETDEP1_${CTM_APPL}.nc -v"    #> Wet Dep From All Clouds
+   setenv CTM_WET_DEP_2   "$OUTDIR/CCTM_WETDEP2_${CTM_APPL}.nc -v"    #> Wet Dep From SubGrid Clouds
+   setenv CTM_PMDIAG_1    "$OUTDIR/CCTM_PMDIAG_${CTM_APPL}.nc -v"     #> On-Hour Particle Diagnostics
+   setenv CTM_APMDIAG_1   "$OUTDIR/CCTM_APMDIAG_${CTM_APPL}.nc -v"    #> Hourly Avg. Particle Diagnostics
+   setenv CTM_RJ_1        "$OUTDIR/CCTM_PHOTDIAG1_${CTM_APPL}.nc -v"  #> 2D Surface Summary from Inline Photolysis
+   setenv CTM_RJ_2        "$OUTDIR/CCTM_PHOTDIAG2_${CTM_APPL}.nc -v"  #> 3D Photolysis Rates 
+   setenv CTM_RJ_3        "$OUTDIR/CCTM_PHOTDIAG3_${CTM_APPL}.nc -v"  #> 3D Optical and Radiative Results from Photolysis
+   setenv CTM_SSEMIS_1    "$OUTDIR/CCTM_SSEMIS_${CTM_APPL}.nc -v"     #> Sea Spray Emissions
+   setenv CTM_DUST_EMIS_1 "$OUTDIR/CCTM_DUSTEMIS_${CTM_APPL}.nc -v"   #> Dust Emissions
+   setenv CTM_IPR_1       "$OUTDIR/CCTM_PA_1_${CTM_APPL}.nc -v"       #> Process Analysis
+   setenv CTM_IPR_2       "$OUTDIR/CCTM_PA_2_${CTM_APPL}.nc -v"       #> Process Analysis
+   setenv CTM_IPR_3       "$OUTDIR/CCTM_PA_3_${CTM_APPL}.nc -v"       #> Process Analysis
+   setenv CTM_IRR_1       "$OUTDIR/CCTM_IRR_1_${CTM_APPL}.nc -v"      #> Chem Process Analysis
+   setenv CTM_IRR_2       "$OUTDIR/CCTM_IRR_2_${CTM_APPL}.nc -v"      #> Chem Process Analysis
+   setenv CTM_IRR_3       "$OUTDIR/CCTM_IRR_3_${CTM_APPL}.nc -v"      #> Chem Process Analysis
+   setenv CTM_DRY_DEP_MOS "$OUTDIR/CCTM_DDMOS_${CTM_APPL}.nc -v"      #> Dry Dep
+   setenv CTM_DRY_DEP_FST "$OUTDIR/CCTM_DDFST_${CTM_APPL}.nc -v"      #> Dry Dep
+   setenv CTM_DEPV_MOS    "$OUTDIR/CCTM_DEPVMOS_${CTM_APPL}.nc -v"    #> Dry Dep Velocity
+   setenv CTM_DEPV_FST    "$OUTDIR/CCTM_DEPVFST_${CTM_APPL}.nc -v"    #> Dry Dep Velocity
+   setenv CTM_VDIFF_DIAG  "$OUTDIR/CCTM_VDIFF_DIAG_${CTM_APPL}.nc -v" #> Vertical Dispersion Diagnostic
+   setenv CTM_VSED_DIAG   "$OUTDIR/CCTM_VSED_DIAG_${CTM_APPL}.nc -v"  #> Particle Grav. Settling Velocity
+   setenv CTM_LTNGDIAG_1  "$OUTDIR/CCTM_LTNGHRLY_${CTM_APPL}.nc -v"   #> Hourly Avg Lightning NO
+   setenv CTM_LTNGDIAG_2  "$OUTDIR/CCTM_LTNGCOL_${CTM_APPL}.nc -v"    #> Column Total Lightning NO
+   setenv CTM_VEXT_1      "$OUTDIR/CCTM_VEXT_${CTM_APPL}.nc -v"       #> On-Hour 3D Concs at select sites
 
-  #> set floor file (neg concs)
-  setenv FLOOR_FILE ${OUTDIR}/FLOOR_${CTM_APPL}.txt
+   #> set floor file (neg concs)
+   setenv FLOOR_FILE ${OUTDIR}/FLOOR_${CTM_APPL}.txt
 
-  #> look for existing log files and output files
-  ( ls CTM_LOG_???.${CTM_APPL} > buff.txt ) >& /dev/null
-  ( ls ${LOGDIR}/CTM_LOG_???.${CTM_APPL} >> buff.txt ) >& /dev/null
-  set log_test = `cat buff.txt`; rm -f buff.txt
+   #> look for existing log files and output files
+   ( ls CTM_LOG_???.${CTM_APPL} > buff.txt ) >& /dev/null
+   ( ls ${LOGDIR}/CTM_LOG_???.${CTM_APPL} >> buff.txt ) >& /dev/null
+   set log_test = `cat buff.txt`; rm -f buff.txt
 
-  set OUT_FILES = (${FLOOR_FILE} ${S_CGRID} ${CTM_CONC_1} ${A_CONC_1} ${MEDIA_CONC}         \
-             ${CTM_DRY_DEP_1} $CTM_DEPV_DIAG $B3GTS_S $SOILOUT $CTM_WET_DEP_1\
-             $CTM_WET_DEP_2 $CTM_PMDIAG_1 $CTM_APMDIAG_1             \
-             $CTM_RJ_1 $CTM_RJ_2 $CTM_RJ_3 $CTM_SSEMIS_1 $CTM_DUST_EMIS_1 $CTM_IPR_1 $CTM_IPR_2       \
-             $CTM_IPR_3 $CTM_IRR_1 $CTM_IRR_2 $CTM_IRR_3 $CTM_DRY_DEP_MOS                   \
-             $CTM_DRY_DEP_FST $CTM_DEPV_MOS $CTM_DEPV_FST $CTM_VDIFF_DIAG $CTM_VSED_DIAG    \
-             $CTM_LTNGDIAG_1 $CTM_LTNGDIAG_2 $CTM_VEXT_1 )
-  if ( $?CTM_ISAM ) then
-     if ( $CTM_ISAM == 'Y' || $CTM_ISAM == 'T' ) then
-        set OUT_FILES = (${OUT_FILES} ${SA_ACONC_1} ${SA_CONC_1} ${SA_DD_1} ${SA_WD_1}      \
-                         ${SA_CGRID_1} )
-     endif
-  endif
-  if ( $?CTM_DDM3D ) then
-     if ( $CTM_DDM3D == 'Y' || $CTM_DDM3D == 'T' ) then
-        set OUT_FILES = (${OUT_FILES} ${CTM_SENS_1} ${A_SENS_1} ${CTM_SWETDEP_1} ${CTM_SDRYDEP_1} )
-     endif
-  endif
-  set OUT_FILES = `echo $OUT_FILES | sed "s; -v;;g" | sed "s;MPI:;;g" `
-  ( ls $OUT_FILES > buff.txt ) >& /dev/null
-  set out_test = `cat buff.txt`; rm -f buff.txt
-  
-  #> delete previous output if requested
-  if ( $CLOBBER_DATA == true || $CLOBBER_DATA == TRUE  ) then
-     echo 
-     echo "Existing Logs and Output Files for Day ${TODAYG} Will Be Deleted"
+   set OUT_FILES = (${FLOOR_FILE} ${S_CGRID} ${CTM_CONC_1} ${A_CONC_1} ${MEDIA_CONC}         \
+               ${CTM_DRY_DEP_1} $CTM_DEPV_DIAG $B3GTS_S $SOILOUT $CTM_WET_DEP_1\
+               $CTM_WET_DEP_2 $CTM_PMDIAG_1 $CTM_APMDIAG_1             \
+               $CTM_RJ_1 $CTM_RJ_2 $CTM_RJ_3 $CTM_SSEMIS_1 $CTM_DUST_EMIS_1 $CTM_IPR_1 $CTM_IPR_2       \
+               $CTM_IPR_3 $CTM_IRR_1 $CTM_IRR_2 $CTM_IRR_3 $CTM_DRY_DEP_MOS                   \
+               $CTM_DRY_DEP_FST $CTM_DEPV_MOS $CTM_DEPV_FST $CTM_VDIFF_DIAG $CTM_VSED_DIAG    \
+               $CTM_LTNGDIAG_1 $CTM_LTNGDIAG_2 $CTM_VEXT_1 )
+   if ( $?CTM_ISAM ) then
+      if ( $CTM_ISAM == 'Y' || $CTM_ISAM == 'T' ) then
+         set OUT_FILES = (${OUT_FILES} ${SA_ACONC_1} ${SA_CONC_1} ${SA_DD_1} ${SA_WD_1}      \
+                           ${SA_CGRID_1} )
+      endif
+   endif
+   if ( $?CTM_DDM3D ) then
+      if ( $CTM_DDM3D == 'Y' || $CTM_DDM3D == 'T' ) then
+         set OUT_FILES = (${OUT_FILES} ${CTM_SENS_1} ${A_SENS_1} ${CTM_SWETDEP_1} ${CTM_SDRYDEP_1} )
+      endif
+   endif
+   set OUT_FILES = `echo $OUT_FILES | sed "s; -v;;g" | sed "s;MPI:;;g" `
+   ( ls $OUT_FILES > buff.txt ) >& /dev/null
+   set out_test = `cat buff.txt`; rm -f buff.txt
+   
+   #> delete previous output if requested
+   if ( $CLOBBER_DATA == true || $CLOBBER_DATA == TRUE  ) then
+      echo 
+      echo "Existing Logs and Output Files for Day ${TODAYG} Will Be Deleted"
 
-     #> remove previous log files
-     foreach file ( ${log_test} )
-        #echo "Deleting log file: $file"
-        /bin/rm -f $file  
-     end
- 
-     #> remove previous output files
-     foreach file ( ${out_test} )
-        #echo "Deleting output file: $file"
-        /bin/rm -f $file  
-     end
-     /bin/rm -f ${OUTDIR}/CCTM_EMDIAG*${RUNID}_${YYYYMMDD}.nc
+      #> remove previous log files
+      foreach file ( ${log_test} )
+         #echo "Deleting log file: $file"
+         /bin/rm -f $file  
+      end
+   
+      #> remove previous output files
+      foreach file ( ${out_test} )
+         #echo "Deleting output file: $file"
+         /bin/rm -f $file  
+      end
+      /bin/rm -f ${OUTDIR}/CCTM_EMDIAG*${RUNID}_${YYYYMMDD}.nc
 
-  else
-     #> error if previous log files exist
-     if ( "$log_test" != "" ) then
-       echo "*** Logs exist - run ABORTED ***"
-       echo "*** To overide, set CLOBBER_DATA = TRUE in run_cctm.csh ***"
-       echo "*** and these files will be automatically deleted. ***"
-       exit 1
-     endif
-     
-     #> error if previous output files exist
-     if ( "$out_test" != "" ) then
-       echo "*** Output Files Exist - run will be ABORTED ***"
-       foreach file ( $out_test )
-          echo " cannot delete $file"
-       end
-       echo "*** To overide, set CLOBBER_DATA = TRUE in run_cctm.csh ***"
-       echo "*** and these files will be automatically deleted. ***"
-       exit 1
-     endif
-  endif
+   else
+      #> error if previous log files exist
+      if ( "$log_test" != "" ) then
+         echo "*** Logs exist - run ABORTED ***"
+         echo "*** To overide, set CLOBBER_DATA = TRUE in run_cctm.csh ***"
+         echo "*** and these files will be automatically deleted. ***"
+         exit 1
+      endif
+      
+      #> error if previous output files exist
+      if ( "$out_test" != "" ) then
+         echo "*** Output Files Exist - run will be ABORTED ***"
+         foreach file ( $out_test )
+            echo " cannot delete $file"
+         end
+         echo "*** To overide, set CLOBBER_DATA = TRUE in run_cctm.csh ***"
+         echo "*** and these files will be automatically deleted. ***"
+         exit 1
+      endif
+   endif
 
-  #> for the run control ...
-  setenv CTM_STDATE      $YYYYJJJ
-  setenv CTM_STTIME      $STTIME
-  setenv CTM_RUNLEN      $NSTEPS
-  setenv CTM_TSTEP       $TSTEP
-  setenv INIT_CONC_1 $ICpath/$ICFILE
-  setenv BNDY_CONC_1 $BCpath/$BCFILE
-  setenv OMI $OMIpath/$OMIfile
-  setenv OPTICS_DATA $OMIpath/$OPTfile
- #setenv XJ_DATA $JVALpath/$JVALfile
- 
-  #> species defn & photolysis
-  setenv gc_matrix_nml ${NMLpath}/GC_$MECH.nml
-  setenv ae_matrix_nml ${NMLpath}/AE_$MECH.nml
-  setenv nr_matrix_nml ${NMLpath}/NR_$MECH.nml
-  setenv tr_matrix_nml ${NMLpath}/Species_Table_TR_0.nml
- 
-  #> check for photolysis input data
-  setenv CSQY_DATA ${NMLpath}/CSQY_DATA_$MECH
+   #> for the run control ...
+   setenv CTM_STDATE      $YYYYJJJ
+   setenv CTM_STTIME      $STTIME
+   setenv CTM_RUNLEN      $NSTEPS
+   setenv CTM_TSTEP       $TSTEP
+   setenv INIT_CONC_1 $ICpath/$ICFILE
+   setenv BNDY_CONC_1 $BCpath/$BCFILE
+   setenv OMI $OMIpath/$OMIfile
+   setenv OPTICS_DATA $OMIpath/$OPTfile
+   #setenv XJ_DATA $JVALpath/$JVALfile
+   
+   #> species defn & photolysis
+   setenv gc_matrix_nml ${NMLpath}/GC_$MECH.nml
+   setenv ae_matrix_nml ${NMLpath}/AE_$MECH.nml
+   setenv nr_matrix_nml ${NMLpath}/NR_$MECH.nml
+   setenv tr_matrix_nml ${NMLpath}/Species_Table_TR_0.nml
+   
+   #> check for photolysis input data
+   setenv CSQY_DATA ${NMLpath}/CSQY_DATA_$MECH
 
-  if (! (-e $CSQY_DATA ) ) then
-     echo " $CSQY_DATA  not found "
-     exit 1
-  endif
-  if (! (-e $OPTICS_DATA ) ) then
-     echo " $OPTICS_DATA  not found "
-     exit 1
-  endif
+   if (! (-e $CSQY_DATA ) ) then
+      echo " $CSQY_DATA  not found "
+      exit 1
+   endif
+   if (! (-e $OPTICS_DATA ) ) then
+      echo " $OPTICS_DATA  not found "
+      exit 1
+   endif
 
-# ===================================================================
-#> Execution Portion
-# ===================================================================
+   # ===================================================================
+   #> Execution Portion
+   # ===================================================================
 
-  #> Print attributes of the executable
-  if ( $CTM_DIAG_LVL != 0 ) then
-     ls -l $BLD/$EXEC
-     size $BLD/$EXEC
-     unlimit
-     limit
-  endif
+   #> Print attributes of the executable
+   if ( $CTM_DIAG_LVL != 0 ) then
+      ls -l $BLD/$EXEC
+      size $BLD/$EXEC
+      unlimit
+      limit
+   endif
 
-  #> Print Startup Dialogue Information to Standard Out
-  echo 
-  echo "CMAQ Processing of Day $YYYYMMDD Began at `date`"
-  echo 
+   #> Print Startup Dialogue Information to Standard Out
+   echo 
+   echo "CMAQ Processing of Day $YYYYMMDD Began at `date`"
+   echo 
 
-  #> Executable call for single PE, uncomment to invoke
-  #( /usr/bin/time -p $BLD/$EXEC ) |& tee buff_${EXECUTION_ID}.txt
+   #> Executable call for single PE, uncomment to invoke
+   #( /usr/bin/time -p $BLD/$EXEC ) |& tee buff_${EXECUTION_ID}.txt
 
-  #> Executable call for multi PE, configure for your system 
-  # set MPI = /usr/local/intel/impi/3.2.2.006/bin64
-  # set MPIRUN = $MPI/mpirun
-  ( /usr/bin/time -p mpirun -np $NPROCS $BLD/$EXEC ) |& tee buff_${EXECUTION_ID}.txt
-  
-  #> Harvest Timing Output so that it may be reported below
-  set rtarray = "${rtarray} `tail -3 buff_${EXECUTION_ID}.txt | grep -Eo '[+-]?[0-9]+([.][0-9]+)?' | head -1` "
-  rm -rf buff_${EXECUTION_ID}.txt
+   #> Executable call for multi PE, configure for your system 
+   # set MPI = /usr/local/intel/impi/3.2.2.006/bin64
+   # set MPIRUN = $MPI/mpirun
+   ( /usr/bin/time -p mpirun -np $NPROCS $BLD/$EXEC ) |& tee buff_${EXECUTION_ID}.txt
+   
+   #> Harvest Timing Output so that it may be reported below
+   set rtarray = "${rtarray} `tail -3 buff_${EXECUTION_ID}.txt | grep -Eo '[+-]?[0-9]+([.][0-9]+)?' | head -1` "
+   rm -rf buff_${EXECUTION_ID}.txt
 
-  #> Abort script if abnormal termination
-  if ( ! -e $OUTDIR/CCTM_CGRID_${CTM_APPL}.nc ) then
-    echo ""
-    echo "**************************************************************"
-    echo "** Runscript Detected an Error: CGRID file was not written. **"
-    echo "**   This indicates that CMAQ was interrupted or an issue   **"
-    echo "**   exists with writing output. The runscript will now     **"
-    echo "**   abort rather than proceeding to subsequent days.       **"
-    echo "**************************************************************"
-    break
-  endif
+   #> Abort script if abnormal termination
+   if ( ! -e $OUTDIR/CCTM_CGRID_${CTM_APPL}.nc ) then
+      echo ""
+      echo "**************************************************************"
+      echo "** Runscript Detected an Error: CGRID file was not written. **"
+      echo "**   This indicates that CMAQ was interrupted or an issue   **"
+      echo "**   exists with writing output. The runscript will now     **"
+      echo "**   abort rather than proceeding to subsequent days.       **"
+      echo "**************************************************************"
+      break
+   endif
 
-  #> Print Concluding Text
-  echo 
-  echo "CMAQ Processing of Day $YYYYMMDD Finished at `date`"
-  echo
-  echo "\\\\\=====\\\\\=====\\\\\=====\\\\\=====/////=====/////=====/////=====/////"
-  echo
+   #> Print Concluding Text
+   echo 
+   echo "CMAQ Processing of Day $YYYYMMDD Finished at `date`"
+   echo
+   echo "\\\\\=====\\\\\=====\\\\\=====\\\\\=====/////=====/////=====/////=====/////"
+   echo
 
-# ===================================================================
-#> Finalize Run for This Day and Loop to Next Day
-# ===================================================================
+   # ===================================================================
+   #> Finalize Run for This Day and Loop to Next Day
+   # ===================================================================
 
-  #> Save Log Files and Move on to Next Simulation Day
-  mv CTM_LOG_???.${CTM_APPL} $LOGDIR
-  if ( $CTM_DIAG_LVL != 0 ) then
-    mv CTM_DIAG_???.${CTM_APPL} $LOGDIR
-  endif
+   #> Save Log Files and Move on to Next Simulation Day
+   mv CTM_LOG_???.${CTM_APPL} $LOGDIR
+   if ( $CTM_DIAG_LVL != 0 ) then
+      mv CTM_DIAG_???.${CTM_APPL} $LOGDIR
+   endif
 
-  #> The next simulation day will, by definition, be a restart
-  setenv NEW_START false
+   #> The next simulation day will, by definition, be a restart
+   setenv NEW_START false
 
-  #> Increment both Gregorian and Julian Days
-  set TODAYG = `date -ud "${TODAYG}+1days" +%Y-%m-%d` #> Add a day for tomorrow
-  set TODAYJ = `date -ud "${TODAYG}" +%Y%j` #> Convert YYYY-MM-DD to YYYYJJJ
+   #> Increment both Gregorian and Julian Days
+   set TODAYG = `date -ud "${TODAYG}+1days" +%Y-%m-%d` #> Add a day for tomorrow
+   set TODAYJ = `date -ud "${TODAYG}" +%Y%j` #> Convert YYYY-MM-DD to YYYYJJJ
 
 end  #Loop to the next Simulation Day
 
