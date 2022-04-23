@@ -12,6 +12,8 @@ from .data.fetch_data import fetch_yaml
 class SMOKEModel:
     """
     This Class provides a framework for running the ptegu/ptertac sectors in SMOKE.
+
+    *NOTE: `run_months` actually doesn't do anything currently...
     """
     def __init__(self, appl, grid_name, nei_case_name='2016fh_16j', chem_mech='cmaq_cb6', region_desc='12km OTC Domain', sector='ptertac', run_months=[8], ertac_case='CONUS2016', emisinv_b='2016fh_proj_from_egunoncems_2016version1_ERTAC_Platform_POINT_calcyear2014_27oct2019.csv', emisinv_c='egunoncems_2016version1_ERTAC_Platform_POINT_27oct2019.csv', setup_yaml='dirpaths.yml', compiler='gcc', compiler_vrsn='9.3.1', smk_exe_str='Linux2_x86_64gfort_default', ioapi_exe_str='Linux2_x86_64gfort', verbose=False):
         self.appl = appl

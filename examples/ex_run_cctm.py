@@ -12,9 +12,9 @@ end_datetime = 'August 14, 2016'  # DAY AFTER the last day you want run
 
 # Specify if you want to run the 12 km or the 4 km domain
 # appl = '2016_12OTC2'
-appl = '2016Base_12OTC2'
+# appl = '2016Base_12OTC2'
 # appl = '2016_4OTC2'
-# appl = '2016Base_4OTC2'   
+appl = '2016Base_4OTC2'   
 
 # Specify if you want to run or just setup cctm
 setup_only = False

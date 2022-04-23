@@ -362,7 +362,8 @@ class CMAQModel:
                 print(f'ICON ran in: {utils.strfdelta(elapsed)}')
         return True
 
-    def run_bcon(self, bcon_start_datetime=None, bcon_end_datetime=None, coarse_grid_appl='coarse', run_hours=2, setup_only=False):
+    def run_bcon(self, bcon_start_datetime=None, bcon_end_datetime=None, coarse_grid_appl='coarse', 
+        run_hours=2, setup_only=False):
         """
         Setup and run BCON, which produces boundary conditions for CMAQ.
         """
