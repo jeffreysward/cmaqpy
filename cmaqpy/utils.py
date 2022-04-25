@@ -200,8 +200,13 @@ def get_rep_dates(smk_dates_dir, dates_list, date_type='  mwdss_N'):
     return result
 
 
-def get_map_proj(ds):
+def convert_tz_xr(ds, input_tz='UTC', output_tz='US/Eastern', time_coord='time'):
     """
-    Extracts information about the CMAQ grid from an output file dataset.
+    Converts an xarray dataset from one timezone to another.
+
+    Note that this will not work if you have problematic features within your simulation
+    (e.g., time changes). This is why xarray hasn't integrated this feature yet. 
     """
-    pass
+    tidx_in = ds.time.to_index().tz_localize(tz=input_tz)
+    ds.coords[time_coord] = tidx_in.tz_convert(output_tz).tz_localize(None)
+    return ds
