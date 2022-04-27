@@ -18,7 +18,7 @@ Then, edit the `examples/ex_ptertac_daily.py` script
 2. Change `end_datetime`. 
 1. Change `appl`  
 2. Change `ertac_case`  
-3. Run `ex_ptertac_daily.py`. This step should take about xx minutes to run and creates a grid-specific `inln_mole_ptertac` for each day in the month. NEI designed it's scripts to easily process the full year, so it's easiest to process data in monthly incriments. 
+3. Run `ex_ptertac_daily.py`. This step should take about 45 minutes to run and creates a grid-specific `inln_mole_ptertac` for each day in the month. NEI designed it's scripts to easily process the full year, so it's easiest to process data in monthly incriments. 
 4. If this is not the base case, I manually rename the `smoke_out` directory to append the scenario (e.g., `ptertac_s0`). Yes, I know, there must be a better way of doing this...  
 
 To visualize the point source emissions, you must transfer these files to the CMAQ grid by running `runsmoke.run_inlineto2d`. Note that you must run this fucntion separately for each day that you would like processed.
