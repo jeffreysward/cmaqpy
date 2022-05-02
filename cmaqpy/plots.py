@@ -15,8 +15,11 @@ def get_proj(ds):
     Extracts information about the CMAQ grid projection from the proj4_srs attribute
     in an output file dataset.
 
-    :param ds:
-    :return:
+    Parameters
+    ----------
+    :param ds: `xarray.Dataset`
+        CMAQ dataset containing the proj4_srs attribute with grid projection information.
+    :return cartopy_crs: cartopy coordinate reference system
     """
     proj_params = ds.proj4_srs
     proj_params = proj_params.replace(' ', '')
@@ -38,11 +41,20 @@ def get_proj(ds):
 
 def get_domain_boundary(ds, cartopy_crs):
     """
-    Finds the boundary of the WRF domain.
+    Finds the boundary of the CMAQ or WRF domain.
 
-    :param ds:
-    :param cartopy_crs:
-    :return:
+    Parameters
+    ----------
+    :param ds: `xarray.Dataset`
+        Dataset from WRF or CMAQ containing a latitude and longitude coordinate.
+        Note that currently this function only works if the latitude coordinate 
+        is either named "latitude" or "XLAT" and the longitude coordinate is 
+        either named "longitude" or "XLONG."
+    :param cartopy_crs: `cartopy.crs.CRS`
+        Cartopy coordinate reference system.
+    :return projected_bounds: list
+        Bounds of the domain transformed into the specified coordinate reference
+        system.
     """
     # Rename the lat-lon corrdinates to get wrf-python to recognize them
     variables = {'latitude': 'XLAT',
@@ -69,6 +81,34 @@ def conc_map(plot_var, cmap=cm.get_cmap('bwr'), figsize=(8,8), ax=None, cartopy_
     """
     Creates a filled colormap across the full domain in the native (Lambert
     Conformal) map projection.
+
+    Parameters
+    ----------
+    :param plot_var: `xarray.DataArray`
+        Array containing the variable you want to plot along with "latitude" 
+        and "longitude" coordinates.
+    :param cmap: `matplotlib.colors.Colormap`
+        Colormap for the pcolormesh.
+    :param figsize: tuple
+        Desired figure size.
+    :param ax: `matplotlib.pyplot.axis`
+        Existing axis -- if you have one -- on which to make the plot.
+    :param cartopy_crs: `cartopy.crs.CRS`
+        Cartopy coordinate reference system.
+    :param proj_bounds: array-like
+        Domain boundaries projected into the `cartopy_crs`.
+    :param vmin: float
+        Minimum value displayed on the colorbar.
+    :param vmax: float
+        Maximum value displayed on the colorbar.
+    :param cbar_args: dict
+        Additional keyword arguments that will be passed to
+        `matplotlib.pyplot.colorbar`.
+    :param save_fig: bool
+        Option to save the plot.
+    :param figpath: string
+        If you choose to save the figure, this parameter controls
+        the output figure's name and type.
     """
     if ax is None:
         # Create a figure
@@ -143,6 +183,31 @@ def pollution_plot(da, vmin=0, vmax=12, cmap=cm.get_cmap('YlOrBr'),
     Creates a filled colormap using the Plate Carree projectsion across a 
     user-defined section of the domain (defaults to the full domain) using 
     the monit package paradigm.
+
+    Parameters
+    ----------
+    :param da: `xarray.DataArray`
+        Array containing the variable you want to plot along with "latitude" 
+        and "longitude" coordinates.
+    :param vmin: float
+        Minimum value displayed on the colorbar.
+    :param vmax: float
+        Maximum value displayed on the colorbar.
+    :param cmap: `matplotlib.colors.Colormap`
+        Colormap for the plot.
+    :param extent: list
+        Plot boundaries in the format [{x_min}, {x_max}, {y_min}, {y_max}].
+    :param cbar_label: string
+        Label for the colarbar.
+    :param figsize: tuple
+        Desired figure size.
+    :param titlestr: string
+        Plot title.
+    :param savefig: bool
+        Option to save the plot.
+    :param figpath: string
+        If you choose to save the figure, this parameter controls
+        the output figure's name and type.
     """
     if extent is None:
         extent = [da.longitude.min(), da.longitude.max(), da.latitude.min(), da.latitude.max() - 2]
@@ -167,6 +232,47 @@ def conc_compare(da1, da2, extent=None,
                  figsize=(15,7), savefig=False, figpath1='./conc_compare1.png', figpath2='./conc_compare2.png'):
     """
     Creates two filled colormaps for concentration comparisons.
+
+    Parameters
+    ----------
+    :param da1: `xarray.DataArray`
+        Array containing the variable you want to plot first along with "latitude" 
+        and "longitude" coordinates.
+    :param da2: `xarray.DataArray`
+        Array containing the variable you want to plot second along with "latitude" 
+        and "longitude" coordinates.
+    :param extent: list
+        Plot boundaries in the format [{x_min}, {x_max}, {y_min}, {y_max}].
+    :param vmin1: float
+        Minimum value displayed on the colorbar for plot 1.
+    :param vmax1: float
+        Maximum value displayed on the colorbar for plot 1.
+    :param vmin2: float
+        Minimum value displayed on the colorbar for plot 2.
+    :param vmax2: float
+        Maximum value displayed on the colorbar for plot 2.
+    :param cmap1: `matplotlib.colors.Colormap`
+        Colormap for plot 1.
+    :param cmap2: `matplotlib.colors.Colormap`
+        Colormap for plot 2.
+    :param cbar_label1: string
+        Label for colarbar 1.
+    :param cbar_label2: string
+        Label for colarbar 2.
+    :param figsize: tuple
+        Desired figure size.
+    :param titlestr1: string
+        Plot 1 title.
+    :param titlestr2: string
+        Plot 2 title.
+    :param savefig: bool
+        Option to save the plot.
+    :param figpath1: string
+        If you choose to save figures, this parameter controls
+        figure 1's name and type.
+    :param figpath2: string
+        If you choose to save the figures, this parameter controls
+        figure 2's name and type.
     """
     # f, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=fsize)
     if extent is None:
@@ -201,6 +307,38 @@ def prof_change(gen_idx, gen_df1, gen_df2, date=None, column_names=['Base Case',
                savefig=False, outfile_pfix='../cmaqpy/data/plots/gen_profs_'):
     """
     Plots changes in generation or emissions profiles for a user-specified unit.
+
+    Parameters
+    ----------
+    :param gen_idx: int
+        Index for the generator that you want to plot.
+    :param gen_df1: `pandas.DataFrame`
+        DataFrame containing the generator profiles for case 1.
+    :param gen_df2: `pandas.DataFrame`
+        DataFrame containing the generator profiles for case 2.
+    :param date: string
+        Date for generator profile plotting. Defaults to None, 
+        and plots the entire available time period. 
+    :param column_names: list of strings
+        Names for case 1 and case 2. These will be written to the 
+        plot legend.
+    :param figsize: tuple
+        Desired figure size.
+    :param colors: list of strings
+        Colors for case 1 and case 2 plots.
+    :param linewidth: float
+        Width of lines on plots.
+    :param linestyle: list of strings
+        Style of lines for case 1 and case 2.
+    :param titlestr1: string
+        Plot title.
+    :param ylabelstr: string
+        Label for y-axis.
+    :param savefig: bool
+        Option to save the plot.
+    :param outfile_pfix: string
+        If you choose to save the figure, this parameter controls
+        the output figure's name. The generator name will be appended.   
     """
     if date is None:
         change_df1 = pd.concat([gen_df1.iloc[gen_idx,5:], gen_df2.iloc[gen_idx,5:]], axis=1)
@@ -228,6 +366,42 @@ def prof_compare(gen_idx1, gen_idx2, gen_df1, gen_df2, date=None, column_names=[
 
     """
     Compares changes in generation or emissions for two user-specified units.
+
+    Parameters
+    ----------
+    :param gen_idx1: int
+        Index for the first generator that you want to plot.
+    :param gen_idx2: int
+        Index for the second generator that you want to plot.
+    :param gen_df1: `pandas.DataFrame`
+        DataFrame containing the generator profiles for case 1.
+    :param gen_df2: `pandas.DataFrame`
+        DataFrame containing the generator profiles for case 2.
+    :param date: string
+        Date for generator profile plotting. Defaults to None, 
+        and plots the entire available time period. 
+    :param column_names: list of strings
+        Names for case 1 and case 2. These will be written to the 
+        plot legend.
+    :param figsize: tuple
+        Desired figure size.
+    :param colors: list of strings
+        Colors for case 1 and case 2 plots.
+    :param linewidth: float
+        Width of lines on plots.
+    :param linestyle: list of strings
+        Style of lines for case 1 and case 2.
+    :param titlestr1: string
+        Appended to the axis 1 title.
+    :param titlestr2: string
+        Appended to the axis 2 title.
+    :param ylabelstr: string
+        Label for y-axis.
+    :param savefig: bool
+        Option to save the plot.
+    :param outfile_pfix: string
+        If you choose to save the figure, this parameter controls
+        the output figure's name. The generator name will be appended.
     """
     if date is None:
         change_df1 = pd.concat([gen_df1.iloc[gen_idx1,5:], gen_df2.iloc[gen_idx1,5:]], axis=1)
