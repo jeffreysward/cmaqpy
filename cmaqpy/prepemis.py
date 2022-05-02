@@ -8,6 +8,16 @@ def fmt_like_camd(data_file='./pred_xg_co2.csv', lu_file='./RGGI_to_NYISO.csv'):
     """
     Takes data output from either the NY Simple Net or the ML Emissions Estimator, 
     and formats it for input into CAMD.
+
+    Parameters
+    ----------
+    :param data_file: string
+        File containing emissions data for a single pollutant throughout time.
+    :param lu_file: string
+        File containing the look-up table to convert from EPA ORISPL and Unit ID
+        to the NYISO ID and Name.
+    :return fmt_data_df: `pandas.DataFrame`
+        Data with formating matching that of the emissions data from EPA CAMD.
     """
     # Read in data 
     raw_data_df = pd.read_csv(data_file, parse_dates=['TimeStamp'], infer_datetime_format=True)
@@ -42,6 +52,14 @@ def fmt_like_camd(data_file='./pred_xg_co2.csv', lu_file='./RGGI_to_NYISO.csv'):
 def fmt_calc_hourly_base(base_file='calc_hourly_base.csv'):
     """
     Format the calc_hourly_base.csv file output by the ERTAC EGU preprocessor.
+
+    Parameters
+    ----------
+    :param base_file: string
+        Full path for the `calc_hourly_base.csv` file.
+    :return base_df: `pandas.DataFrame`
+        DataFrame containing the properly formatted emissions data
+        from the `calc_hourly_base.csv` file.
     """
     # Read in the generator data previously preprocessed by ERTAC EGU tool
     base_df = pd.read_csv(base_file, dtype={'ertac_region': 'object',
@@ -80,11 +98,29 @@ def fmt_calc_hourly_base(base_file='calc_hourly_base.csv'):
 
 def update_camd(in_emis_file='calc_hourly_base.csv', co2_file='pred_xg_co2.csv', 
                 nox_file='pred_xg_nox.csv', so2_file='pred_xg_so2.csv', 
-                gen_file='pred_xg_so2.csv', lu_file='RGGI_to_NYISO.csv', 
+                gen_file='thermal_without_renewable.csv', lu_file='RGGI_to_NYISO.csv', 
                 out_emis_file='Updated_calc_hourly_base.csv'):
     """
     Update the CAMD load and emissions data with that generated from the NY Simple Net 
     and the ML-based emissions estimates. 
+
+    Parameters
+    ----------
+    :param in_emis_file: string
+        Path to baseline emissions file (i.e., ERTAC EGU `calc_hourly_base.csv`) 
+    :param co2_file: string
+        Path to the file containing the unit-level CO2 emissions.
+    :param nox_file: string
+        Path to the file containing the unit-level NOx emissions.
+    :param so2_file: string
+        Path to the file containing the unit-level SO2 emissions.
+    :param gen_file: string
+        Path to the file containing the unit-level power generation.
+    :param lu_file: string
+        Path to the file containing the look-up table to convert from
+        EPA ORISPL and Unit ID to the NYISO ID and Name. 
+    :param out_emis_file: string
+        Path where the updated `calc_hourly_base.csv` file will be written.
     """
     # Read in the base emissions file
     base_df = fmt_calc_hourly_base(base_file=in_emis_file)

@@ -10,8 +10,9 @@ class CMAQModel:
     """
     This class provides a framework for running the CMAQ Model.
 
-    NOTE: evetnually need to figure out how to link files for representative days through the following Sunday.
-    Right now, I do this manually by adding 1 to the length of days. 
+    NOTE: evetnually need to figure out how to link files for representative days 
+    through the following Sunday. Right now, I do this manually by adding 1 to the 
+    length of days. 
 
     Parameters
     ----------
@@ -24,17 +25,36 @@ class CMAQModel:
     :param appl: string
         Application name. Used primarily for directory and file naming.
     :param coord_name: string
-        Coordinate name from the GRIDDESC file (e.g., LAM_40N100W),
-        which must match!
+        Coordinate name which must match the GRIDDESC file (e.g., LAM_40N100W).
     :param grid_name: string
+        Grid name which must match the GRIDDESC file (e.g., 12OTC2).
     :param chem_mech: string
+        CMAQ chemical mechanism. This defaults to "cb6r3_ae7_aq."
     :param cctm_vrsn: string
+        Version identifier for CCTM, which is required for identifying the
+        executables.
     :param setup_yaml: string
+        Name of the yaml file containin your directory paths if located in this directory.
+        Otherwise, use the full file path. 
     :param compiler: string
+        Compiler identifier for use in naming.
     :param compiler_vrsn: string
+        Compiler version number for use in naming. 
     :param new_mcip: bool
+        Option to run MCIP or use MCIP output from a previous run. Defaults to True. 
     :param new_icon: bool
+        Option to run ICON or use ICON output (or a CGRID file) from a previous run.
+        Defualts to False.
+    :param icon_vrsn: string
+        ICON version number for use in naming.
+    :param icon_type: string
+        Method for creating initial conditions. Options are [profile, regrid].
     :param new_bcon: bool
+        Option to run BCON or use BCON output from a previous run. Defaults to True.
+    :param bcon_vrsn: string
+        BCON version number for use in naming. 
+    :param bcon_type: string 
+        Method for creating boundary conditions. Options are [profile, regrid].
     :param verbose: bool
 
     See also
@@ -152,12 +172,37 @@ class CMAQModel:
     def run_mcip(self, mcip_start_datetime=None, mcip_end_datetime=None, metfile_list=[], geo_file='geo_em.d01.nc', t_step=60, run_hours=4, setup_only=False):
         """
         Setup and run MCIP, which formats meteorological files (e.g. wrfout*.nc) for CMAQ.
+
+        Parameters
+        ----------
+        :param mcip_start_datetime: string
+            Start date and time for MCIP. Defaults to None in which case the MCIP start 
+            datetime will be assigned from the CMAQ start datetime. 
+        :param mcip_end_datetime: string
+            End date and time for MCIP. Defaults to None in which case the MCIP end 
+            datetime will be assigned from the CMAQ end datetime.
+        :param metfile_list: list
+            List of wrfout* files, which must be located in `self.InMetDir`, that will
+            be processed by MCIP.
+        :param geo_file: string
+            Name of geo_em* file associated with the wrfout* files you are processing.
+        :param t_step: int
+            Time step (MCIP INTVL parameter) of output data in minutes. Defaults to 60 
+            min (1 hour).
+        :param run_hours: int
+            Number of hours to request from the scheduler.
+        :setup_only: bool
+            Option to setup the directories and write the scripts without running MCIP.
         """
         ## SETUP MCIP
         if mcip_start_datetime is None:
             mcip_start_datetime = self.start_datetime
+        else:
+            mcip_start_datetime = utils.format_date(mcip_start_datetime)
         if mcip_end_datetime is None:
             mcip_end_datetime = self.end_datetime
+        else:
+            mcip_end_datetime = utils.format_date(mcip_end_datetime)
         # Set an 'MCIP APPL,' which will control file names
         mcip_sdatestr = mcip_start_datetime.strftime("%y%m%d")
         self.mcip_appl = f'{self.appl}_{mcip_sdatestr}'
@@ -251,7 +296,19 @@ class CMAQModel:
         """
         Run MCIP over multiple days. Per CMAQ convention, daily MCIP files contain
         25 hours each all the hours from the current day, and the first hour (00:00)
-        from the following day. 
+        from the following day.
+
+        Parameters
+        ----------
+        :param metfile_dir: string
+            Path to the directory where the wrfout* files are located.
+        :param metfile_list: list
+            List of wrfout* files, located in `metfile_dir`, that will be processed by MCIP.
+        :param geo_file: string
+            Name of geo_em* file associated with the wrfout* files you are processing.
+        :param t_step: int
+            Time step (MCIP INTVL parameter) of output data in minutes. Defaults to 60 
+            min (1 hour).
         """
         # Loop over each day
         for day_no in range(self.delt.days):
@@ -277,6 +334,15 @@ class CMAQModel:
     def run_icon(self, coarse_grid_appl='coarse', run_hours=2, setup_only=False):
         """
         Setup and run ICON, which produces initial conditions for CMAQ.
+
+        Parameters
+        ----------
+        :param coarse_grid_appl: string
+            Application name for the coarse grid from which you are deriving initial conditions.
+        :param run_hours: int
+            Number of hours to request from the scheduler.
+        :setup_only: bool
+            Option to setup the directories and write the scripts without running ICON.
         """
         ## SETUP ICON
         # Copy the template ICON run script to the scripts directory
@@ -366,12 +432,31 @@ class CMAQModel:
         run_hours=2, setup_only=False):
         """
         Setup and run BCON, which produces boundary conditions for CMAQ.
+
+        Parameters
+        ----------
+        :param bcon_start_datetime: string
+            Start date and time for BCON. Defaults to None in which case the BCON start 
+            datetime will be assigned from the CMAQ start datetime.
+        :param bcon_end_datetime: string
+            End date and time for BCON. Defaults to None in which case the BCON end 
+            datetime will be assigned from the CMAQ end datetime.
+        :param coarse_grid_appl: string
+            Application name for the coarse grid from which you are deriving boundary conditions.
+        :param run_hours: int
+            Number of hours to request from the scheduler.
+        :setup_only: bool
+            Option to setup the directories and write the scripts without running BCON.
         """
         # Set the start and end dates
         if bcon_start_datetime is None:
             bcon_start_datetime = self.start_datetime
+        else:
+            bcon_start_datetime = utils.format_date(bcon_start_datetime)
         if bcon_end_datetime is None:
             bcon_end_datetime = self.end_datetime
+        else:
+            bcon_end_datetime = utils.format_date(bcon_end_datetime)
         # Determine the length of the BCON run
         bcon_delt = bcon_end_datetime - bcon_start_datetime
 
@@ -478,6 +563,15 @@ class CMAQModel:
         """
         Run BCON over multiple days. Per CMAQ convention, BCON will run for the same length
         as CCTM -- i.e., a single day. 
+
+        Parameters
+        ----------
+        :param coarse_grid_appl: string
+            Application name for the coarse grid from which you are deriving boundary conditions.
+        :param run_hours: int
+            Number of hours to request from the scheduler.
+        :setup_only: bool
+            Option to setup the directories and write the scripts without running BCON.
         """
         # Loop over each day
         for day_no in range(self.delt.days):
@@ -495,7 +589,21 @@ class CMAQModel:
         pt_emis_labs=['ptnonertac', 'ptertac', 'othpt', 'ptagfire', 'ptfire', 'ptfire_othna', 'pt_oilgas', 'cmv_c3_12', 'cmv_c1c2_12'],
         stkgrps_daily=[False, False, False, True, True, True, False, False, False]):
         """
-        Links all the necessary files to the locations in INPDIR where CCTM expects to find them. 
+        Links all the necessary files to the locations in INPDIR where CCTM expects to find them.
+
+        Parameters
+        ----------
+        :param n_emis_gr: int
+            Number of gridded emissions sectors.
+        :param gr_emis_labs: list of strings
+            Labels for each of the gridded emissions sectors.
+        :param n_emis_pt: int
+            Number of point emissions sectors.
+        :param pt_emis_labs: list of strings
+            Labels for each of the point emissions sectors.
+        :param stkgrps_daily: list of bools 
+            Boolean indicating if each point sector uses daily stack groups files.
+            For example, fire sectors use daily stack groups files.
         """
         # Remove the existing input directory if it already exists and remake it
         utils.remove_dir(self.CCTM_INPDIR)
@@ -611,6 +719,45 @@ class CMAQModel:
         cctm_hours=24, n_procs=16, gb_mem=50, run_hours=24, setup_only=False):
         """
         Setup and run CCTM, CMAQ's chemical transport model.
+
+        Parameters
+        ----------
+        :param n_emis_gr: int
+            Number of gridded emissions sectors.
+        :param gr_emis_labs: list of strings
+            Labels for each of the gridded emissions sectors.
+        :param n_emis_pt: int
+            Number of point emissions sectors.
+        :param pt_emis_labs: list of strings
+            Labels for each of the point emissions sectors.
+        :param stkgrps_daily: list of bools 
+            Boolean indicating if each point sector uses daily stack groups files.
+            For example, fire sectors use daily stack groups files. 
+        :param ctm_abflux: string
+            Turns on/off ammonia bi-directional flux for in-line deposition.
+            Options are [Y, N].
+        :param stkcaseg: string
+            Stack group version label.
+        :param stkcasee: string
+            Stack emission version label
+        :param delete_existing_output: string
+            If TRUE, any files or logs previously created by CCTM will be deleted. 
+            If FALSE, previous files or logs will cause CCTM to fail. Options are
+            [TRUE, FALSE].
+        :param new_sim: string
+            Set to FALSE for model restart. Options are [TRUE, FALSE].
+        :param tstep: string
+            Output time step interval (HHMMSS). Defaults to 010000.
+        :param cctm_hours: int
+            Time duration for this run of CCTM in hours.
+        :param n_procs: int
+            Number of processors to request from the scheduler. 
+        :param gb_mem: int
+            Number of GB of memory per node to request from the scheduler.  
+        :param run_hours: int
+            Run length, in hours, to request from the scheduler.
+        :param setup_only: bool
+            Option to setup the directories and write the scripts without running CCTM.
         """
         # Check that a consistent number of labels were passed
         if len(gr_emis_labs) != n_emis_gr:
@@ -824,6 +971,15 @@ class CMAQModel:
         """
         Setup and run the combine program. Combine is a CMAQ post-processing program that formats 
         the CCTM output data in a more convenient way.
+
+        Parameters
+        ----------
+        :param run_hours: int
+            Run length, in hours, to request from the scheduler.
+        :param mem_per_node: int
+            Number of GB of memory per node to request from the scheduler. 
+        :param combine_vrsn: string
+            Version number of combine for identifying executables. 
         """
         ## Setup Combine
         # Copy the template combine run script to the scripts directory
@@ -898,11 +1054,15 @@ class CMAQModel:
         """
         Check if a specified CMAQ subprogram has finished running.
 
+        Parameters
+        ----------
         :param program: string
             CMAQ subprogram name whose status is to be checked.
-        :return: 'running' or 'complete' or 'failed' string
+        :param custom_log: string
+            Path to a log file with a name that's different than those assigned 
+            in the class methods. Defaults to None.
+        :return: string 'running' or 'complete' or 'failed'
             Run status of the program.
-
         """
         if program == 'mcip':
             if custom_log is not None:
