@@ -56,6 +56,7 @@ class CMAQModel:
     :param bcon_type: string 
         Method for creating boundary conditions. Options are [profile, regrid].
     :param verbose: bool
+        When True, additional information is prited to the screen about simulation progress.
 
     See also
     --------
